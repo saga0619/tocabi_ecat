@@ -500,6 +500,11 @@ void ethercatThread2()
                 std::cout << "shutdown request" << std::endl;
                 de_shutdown = true;
             }
+            else if((ch % 256 == 'i'))
+            {
+                std::cout<<"start controlword generate"<<std::endl;
+                de_controlword = true;
+            }
 
             this_thread::sleep_for(std::chrono::milliseconds(1));
         }

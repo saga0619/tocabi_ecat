@@ -172,6 +172,7 @@ atomic<bool> de_shutdown{false};
 atomic<bool> de_ecat_lost{false};
 atomic<bool> de_ecat_lost_before{false};
 atomic<bool> de_ecat_recovered{false};
+atomic<bool> de_controlword{false};
 
 array<atomic<double>, ELMO_DOF> q_elmo_;
 array<atomic<double>, ELMO_DOF> q_dot_elmo_;
