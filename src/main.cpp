@@ -27,5 +27,7 @@ int main(void)
     thread1.join();
     thread2.join();
 
+
+    std::cout << "tocabiEcat Shutdown" << std::endl;
     return 0;
 }

@@ -170,15 +170,6 @@ void ethercatThread1()
 
             if (ec_slave[0].state == EC_STATE_OPERATIONAL)
             {
-                if (ecat_number_ok && ecat_WKC_ok)
-                {
-                    cout << "All slave status GREEN" << endl;
-                }
-                else
-                {
-                    cout << "Please Check Slave status" << endl;
-                }
-
                 inOP = TRUE;
 
                 /* cyclic loop */
@@ -274,7 +265,7 @@ void ethercatThread1()
 
                                 txPDO[slave - 1]->maxTorque = (uint16)1500; // originaly 1000
                                 //ElmoMode[slave - 1] = EM_TORQUE;
-                               // torqueDemandElmo[slave - 1] = 0.0;
+                                // torqueDemandElmo[slave - 1] = 0.0;
                             }
                         }
                     }
@@ -489,6 +480,8 @@ void ethercatThread1()
     {
         printf("ELMO : No socket connection on %s\nExcecute as root\n", ifname);
     }
+
+    std::cout << "ethercatThread1 Shutdown" << std::endl;
 }
 
 void ethercatThread2()
@@ -497,8 +490,22 @@ void ethercatThread2()
     {
         ethercatCheck();
 
-        this_thread::sleep_for(std::chrono::milliseconds(1));
+        int ch = kbhit();
+        //kch = -1;
+        if (ch != -1)
+        {
+            //std::cout << "key input : " << (char)(ch % 256) << std::endl;
+            if ((ch % 256 == 'q'))
+            {
+                std::cout << "shutdown request" << std::endl;
+                de_shutdown = true;
+            }
+
+            this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
     }
+
+    std::cout << "ethercatThread2 Shutdown" << std::endl;
 }
 
 double elmoJointMove(double init, double angle, double start_time, double traj_time)
@@ -602,5 +609,34 @@ void emergencyOff() //TorqueZero
     {
         txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousTorquemode;
         txPDO[i]->targetTorque = (int)0;
+    }
+}
+
+int kbhit(void)
+{
+
+    struct termios oldt, newt;
+    int ch;
+    int oldf;
+
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO | ISIG);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+    fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+
+    int nread = read(0, &ch, 1);
+
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    fcntl(STDIN_FILENO, F_SETFL, oldf);
+
+    if (nread >= 1)
+    {
+        return ch;
+    }
+    else
+    {
+        return -1;
     }
 }

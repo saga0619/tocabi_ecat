@@ -6,6 +6,11 @@
 
 #include "ethercat.h"
 #include "ecat_settings.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <termios.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 using namespace std;
 
@@ -195,3 +200,5 @@ void saveZeroPoint();
 void loadZeroPoint();
 
 void emergencyOff();
+
+int kbhit(void);
