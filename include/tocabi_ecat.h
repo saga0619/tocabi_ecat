@@ -69,6 +69,16 @@ enum
     CW_DISABLEOP = 7,
 };
 
+
+enum
+{
+    ELMO_FAULT = 536,
+    ELMO_NOTFAULT = 592,
+    ELMO_READY_TO_SWITCH_ON = 561,
+    ELMO_SWITCHED_ON = 563,
+    ELMO_OPERATION_ENABLE = 567,
+};
+
 namespace ElmoHommingStatus
 {
     enum FZResult
@@ -81,11 +91,15 @@ namespace ElmoHommingStatus
 struct ElmoState
 {
     int boot_sequence = 0;
-    int state_elmo = 0;
-    int check_value = 0;
-    int check_value_before = 0;
+    int state = 0;
+    int state_before = 0;
+    uint16_t check_value = 0;
+    uint16_t check_value_before = 0;
 
     bool commutation_ok = false;
+    bool commutation_required = false;
+    bool commutation_not_required = false;
+    bool first_check = true;
 };
 
 struct ElmoHomming
@@ -193,6 +207,13 @@ bool zp_ok = false;
 bool zp_fail = false;
 bool zp_load_ok = true;
 
+bool wait_kill_switch = true;
+bool wait_time_over = false;
+
+int wait_cnt = 0;
+
+int commutation_joint = 0;
+
 atomic<bool> de_operation_ready{false};
 atomic<bool> de_emergency_off{false};
 atomic<bool> de_shutdown{false};
@@ -230,3 +251,6 @@ void loadZeroPoint();
 void emergencyOff();
 
 int kbhit(void);
+
+
+int getElmoState(uint16_t state_bit);

@@ -95,6 +95,7 @@ void ethercatThread1()
             else
             {
                 std::cout << cred << "WARNING : SLAVE NUMBER INSUFFICIENT" << creset << std::endl;
+                de_shutdown = true;
             }
             /** CompleteAccess disabled for Elmo driver */
             for (int slave = 1; slave <= ec_slavecount; slave++)
@@ -145,6 +146,7 @@ void ethercatThread1()
             {
                 std::cout << cred << "WARNING : Calculated Workcounter insufficient!" << creset << std::endl;
                 ecat_WKC_ok = true;
+
             }
 
             /** going operational */
@@ -184,7 +186,7 @@ void ethercatThread1()
 
                 int cycle_count = 0;
 
-                double to_ratio, to_calib;
+                //double to_ratio, to_calib;
 
                 for (int i = 0; i < ec_slavecount; i++)
                     ElmoSafteyMode[i] = 0;
@@ -198,95 +200,119 @@ void ethercatThread1()
                 chrono::steady_clock::time_point st_start_time = std::chrono::steady_clock::now();
 
                 cout << "Initialization Mode" << endl;
-                while (true)
+                while (!de_shutdown)
                 {
                     std::this_thread::sleep_until(st_start_time + cycle_count * cycletime);
                     cycle_count++;
                     wkc = ec_receive_processdata(0);
 
-                    if (wkc >= expectedWKC)
-                    {
-                        for (int slave = 0; slave < ec_slavecount; slave++)
-                        {
-                            q_elmo_[slave] = rxPDO[slave]->positionActualValue * CNT2RAD[slave] * elmo_axis_direction[slave];
-                            hommingElmo[slave] =
-                                (((uint32_t)ec_slave[slave + 1].inputs[4]) +
-                                 ((uint32_t)ec_slave[slave + 1].inputs[5] << 8) +
-                                 ((uint32_t)ec_slave[slave + 1].inputs[6] << 16) +
-                                 ((uint32_t)ec_slave[slave + 1].inputs[7] << 24));
-
-                            elmost[slave].state_elmo =
-                                (((uint16_t)ec_slave[slave + 1].inputs[8]) +
-                                 ((uint16_t)ec_slave[slave + 1].inputs[9] << 8));
-
-                            q_ext_elmo_[slave] =
-                                (((int32_t)ec_slave[slave + 1].inputs[16]) +
-                                 ((int32_t)ec_slave[slave + 1].inputs[17] << 8) +
-                                 ((int32_t)ec_slave[slave + 1].inputs[18] << 16) +
-                                 ((int32_t)ec_slave[slave + 1].inputs[19] << 24) - q_ext_mod_elmo_[slave]) *
-                                EXTCNT2RAD[slave] * elmo_ext_axis_direction[slave];
-
-                            if (slave == 1 || slave == 2 || slave == 19 || slave == 20)
-                            {
-                                hommingElmo[slave] = !hommingElmo[slave];
-                            }
-                            txPDO[slave - 1]->maxTorque = (uint16)300;
-                        }
-                    }
-
                     for (int i = 0; i < ec_slavecount; i++)
                     {
-                        elmost[i].check_value = (elmost[i].state_elmo & 111);
+                        elmost[i].state = getElmoState(rxPDO[i]->statusWord);
 
-                        if (elmost[i].check_value_before != elmost[i].check_value)
+                        if (elmost[i].state != elmost[i].state_before)
                         {
-                            if ((elmost[i].boot_sequence == 0) && (elmost[i].check_value == 0))
-                                elmost[i].boot_sequence++;
-                            if ((elmost[i].boot_sequence == 1) && (elmost[i].check_value == 33))
-                                elmost[i].boot_sequence++;
-                            if ((elmost[i].boot_sequence == 2) && (elmost[i].check_value == 35))
-                                elmost[i].boot_sequence++;
-                            if (elmost[i].boot_sequence == 3)
+                            if (elmost[i].first_check)
                             {
-                                if (elmost[i].check_value == 39)
-                                    elmost[i].boot_sequence++;
-                                if (elmost[i].check_value == 8)
-                                    elmost[i].boot_sequence = 5;
-                            }
-                            if ((elmost[i].boot_sequence == 4) && (elmost[i].check_value == 39))
-                            {
-                                std::cout << "slave : " << i << " WARMSTART" << std::endl;
-                                elmost[i].commutation_ok = true;
-                            }
-                            if ((elmost[i].boot_sequence == 5) && (elmost[i].check_value == 64))
-                            {
-                                std::cout << "slave : " << i << " COMMUTATION INITIALIZING" << std::endl;
-                                elmost[i].boot_sequence = 6;
-                            }
-                            if (elmost[i].boot_sequence == 6)
-                            {
-                                if (elmost[i].check_value == 39)
+                                if (elmost[i].state == ELMO_NOTFAULT)
                                 {
-                                    std::cout << "slave : " << i << " COMMUTATION COMPLETE" << std::endl;
+                                    elmost[i].commutation_required = true;
+                                }
+                                else if (elmost[i].state == ELMO_FAULT)
+                                {
+                                    //cout << "slave : " << i << " commutation check complete at first" << endl;
+                                    elmost[i].commutation_not_required = true;
+                                }
+                                else if (elmost[i].state == ELMO_OPERATION_ENABLE)
+                                {
+                                    //cout << "slave : " << i << " commutation check complete with operation enable" << endl;
+                                    elmost[i].commutation_not_required = true;
                                     elmost[i].commutation_ok = true;
+                                }
+                                else
+                                {
+                                    //cout << "first missing : slave : " << i << " state : " << elmost[i].state << endl;
+                                }
+                                elmost[i].first_check = false;
+                            }
+                            else
+                            {
+                                if (elmost[i].state == ELMO_OPERATION_ENABLE)
+                                {
+                                    //cout << "slave : " << i << " commutation check complete with operation enable 2" << endl;
+                                    elmost[i].commutation_ok = true;
+                                    elmost[i].commutation_required = false;
                                 }
                             }
                         }
-                        elmost[i].check_value_before = elmost[i].check_value;
+                        elmost[i].state_before = elmost[i].state;
                     }
 
-                    ec_send_processdata();
                     bool waitop = true;
                     for (int i = 0; i < ec_slavecount; i++)
-                    {
                         waitop = waitop && elmost[i].commutation_ok;
-                    }
 
                     if (waitop)
                     {
-                        cout << "All slave commutation OK" << endl;
+                        cout << "All slaves Operational" << endl;
                         break;
                     }
+
+                    bool waitcm = true;
+                    for (int i = 0; i < ec_slavecount; i++)
+                        waitcm = waitcm && elmost[i].commutation_not_required;
+
+                    if (waitcm)
+                    {
+                        if (wait_kill_switch)
+                        {
+                            cout << "commutation state OK" << endl;
+                            wait_kill_switch = false;
+                        }
+                        if (wait_cnt == 200)
+                        {
+                            cout << "slaves status are not OP! maybe kill switch is on?" << endl;
+                        }
+
+                        wait_cnt++;
+                    }
+                    else
+                    {
+                        int total_commutation_cnt = 0;
+                        for (int i = 0; i < ec_slavecount; i++)
+                        {
+                            if (elmost[i].commutation_required)
+                            {
+                                total_commutation_cnt++;
+                                if (total_commutation_cnt < 10)
+                                    controlWordGenerate(rxPDO[i]->statusWord, txPDO[i]->controlWord);
+                                txPDO[i]->maxTorque = (uint16)1000; // originaly 1000
+                            }
+                        }
+
+                        if (elmost[commutation_joint].commutation_ok)
+                        {
+                            commutation_joint++;
+                            if (commutation_joint > ec_slavecount)
+                                commutation_joint = 0;
+                        }
+                        else
+                        {
+                            controlWordGenerate(rxPDO[commutation_joint]->statusWord, txPDO[commutation_joint]->controlWord);
+                            txPDO[commutation_joint]->maxTorque = (uint16)1000; // originaly 1000
+                        }
+                    }
+
+                    for (int i = 0; i < ec_slavecount; i++)
+                    {
+                        if (!elmost[i].commutation_required)
+                        {
+                            controlWordGenerate(rxPDO[i]->statusWord, txPDO[i]->controlWord);
+                            txPDO[i]->maxTorque = (uint16)1000; // originaly 1000
+                        }
+                    }
+
+                    ec_send_processdata();
                 }
 
                 cout << "Control Mode Start ... " << endl;
@@ -299,18 +325,23 @@ void ethercatThread1()
                     /** PDO I/O refresh */
                     //ec_send_processdata();
                     wkc = ec_receive_processdata(0);
+                    /*
+                    elmost[20].check_value = rxPDO[20]->statusWord;
+                    if (elmost[20].check_value != elmost[20].check_value_before)
+                    {
+                        elmost[20].state = getElmoState(elmost[20].check_value);
+                        cout << "20 : " << elmost[20].state << endl;
+                    }
+                    elmost[20].check_value_before = rxPDO[20]->statusWord;*/
 
                     if (wkc >= expectedWKC)
                     {
-                        if (de_controlword)
+                        for (int slave = 1; slave <= ec_slavecount; slave++)
                         {
-                            for (int slave = 1; slave <= ec_slavecount; slave++)
+                            if (controlWordGenerate(rxPDO[slave - 1]->statusWord, txPDO[slave - 1]->controlWord))
                             {
-                                if (controlWordGenerate(rxPDO[slave - 1]->statusWord, txPDO[slave - 1]->controlWord))
-                                {
 
-                                    reachedInitial[slave - 1] = true;
-                                }
+                                reachedInitial[slave - 1] = true;
                             }
                         }
                         for (int slave = 1; slave <= ec_slavecount; slave++)
@@ -325,10 +356,6 @@ void ethercatThread1()
                                      ((uint32_t)ec_slave[slave].inputs[5] << 8) +
                                      ((uint32_t)ec_slave[slave].inputs[6] << 16) +
                                      ((uint32_t)ec_slave[slave].inputs[7] << 24));
-
-                                stateElmo[slave - 1] =
-                                    (((uint16_t)ec_slave[slave].inputs[8]) +
-                                     ((uint16_t)ec_slave[slave].inputs[9] << 8));
 
                                 q_dot_elmo_[slave - 1] =
                                     (((int32_t)ec_slave[slave].inputs[10]) +
@@ -735,5 +762,38 @@ int kbhit(void)
     else
     {
         return -1;
+    }
+}
+
+int getElmoState(uint16_t state_bit)
+{
+    if (!(state_bit & (1 << OPERATION_ENABLE_BIT)))
+    {
+        if (!(state_bit & (1 << SWITCHED_ON_BIT)))
+        {
+            if (!(state_bit & (1 << READY_TO_SWITCH_ON_BIT)))
+            {
+                if (state_bit & (1 << FAULT_BIT))
+                {
+                    return ELMO_FAULT;
+                }
+                else
+                {
+                    return ELMO_NOTFAULT;
+                }
+            }
+            else
+            {
+                return ELMO_READY_TO_SWITCH_ON;
+            }
+        }
+        else
+        {
+            return ELMO_SWITCHED_ON;
+        }
+    }
+    else
+    {
+        return ELMO_OPERATION_ENABLE;
     }
 }
