@@ -212,15 +212,17 @@ void ethercatThread1()
 
                     if (wkc >= expectedWKC)
                     {
-                        /*
-                        for (int slave = 1; slave <= ec_slavecount; slave++)
+                        if (de_controlword)
                         {
-                            if (controlWordGenerate(rxPDO[slave - 1]->statusWord, txPDO[slave - 1]->controlWord))
+                            for (int slave = 1; slave <= ec_slavecount; slave++)
                             {
+                                if (controlWordGenerate(rxPDO[slave - 1]->statusWord, txPDO[slave - 1]->controlWord))
+                                {
 
-                                reachedInitial[slave - 1] = true;
+                                    reachedInitial[slave - 1] = true;
+                                }
                             }
-                        }*/
+                        }
                         for (int slave = 1; slave <= ec_slavecount; slave++)
                         {
                             if (reachedInitial[slave - 1])
@@ -500,9 +502,9 @@ void ethercatThread2()
                 std::cout << "shutdown request" << std::endl;
                 de_shutdown = true;
             }
-            else if((ch % 256 == 'i'))
+            else if ((ch % 256 == 'i'))
             {
-                std::cout<<"start controlword generate"<<std::endl;
+                std::cout << "start controlword generate" << std::endl;
                 de_controlword = true;
             }
 
