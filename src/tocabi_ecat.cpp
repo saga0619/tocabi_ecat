@@ -79,7 +79,6 @@ void ethercatThread1()
     const char *ifname = ifname_str.c_str();
 
     if (ec_init(ifname))
-    //if(ec_init_redundant(ifname, (char *)ifname2))
     {
         printf("ELMO : ec_init on %s succeeded.\n", ifname);
 
@@ -173,7 +172,6 @@ void ethercatThread1()
                 inOP = TRUE;
 
                 /* cyclic loop */
-
                 for (int slave = 1; slave <= ec_slavecount; slave++)
                 {
                     txPDO[slave - 1] = (EtherCAT_Elmo::ElmoGoldDevice::elmo_gold_tx *)(ec_slave[slave].outputs);
@@ -182,32 +180,124 @@ void ethercatThread1()
 
                 std::chrono::duration<double> time_from_begin;
 
-                std::chrono::microseconds cycletime(CTIME);
+                std::chrono::microseconds cycletime(CYCLETIME);
 
                 int cycle_count = 0;
 
                 double to_ratio, to_calib;
 
                 for (int i = 0; i < ec_slavecount; i++)
-                {
                     ElmoSafteyMode[i] = 0;
-                }
 
                 /*
-                        for (int i = 0; i < MODEL_DOF; i++)
-                        {
-                            ELMO_NM2CNT[i] = dc.tocabi_.vector_NM2CNT[i];
-                        }*/
+                for (int i = 0; i < MODEL_DOF; i++)
+                    ELMO_NM2CNT[i] = dc.tocabi_.vector_NM2CNT[i];
+                */
 
+                //Commutation Checking
                 chrono::steady_clock::time_point st_start_time = std::chrono::steady_clock::now();
 
+                cout << "Initialization Mode" << endl;
+                while (true)
+                {
+                    std::this_thread::sleep_until(st_start_time + cycle_count * cycletime);
+                    cycle_count++;
+                    wkc = ec_receive_processdata(0);
+
+                    if (wkc >= expectedWKC)
+                    {
+                        for (int slave = 0; slave < ec_slavecount; slave++)
+                        {
+                            q_elmo_[slave] = rxPDO[slave]->positionActualValue * CNT2RAD[slave] * elmo_axis_direction[slave];
+                            hommingElmo[slave] =
+                                (((uint32_t)ec_slave[slave + 1].inputs[4]) +
+                                 ((uint32_t)ec_slave[slave + 1].inputs[5] << 8) +
+                                 ((uint32_t)ec_slave[slave + 1].inputs[6] << 16) +
+                                 ((uint32_t)ec_slave[slave + 1].inputs[7] << 24));
+
+                            elmost[slave].state_elmo =
+                                (((uint16_t)ec_slave[slave + 1].inputs[8]) +
+                                 ((uint16_t)ec_slave[slave + 1].inputs[9] << 8));
+
+                            q_ext_elmo_[slave] =
+                                (((int32_t)ec_slave[slave + 1].inputs[16]) +
+                                 ((int32_t)ec_slave[slave + 1].inputs[17] << 8) +
+                                 ((int32_t)ec_slave[slave + 1].inputs[18] << 16) +
+                                 ((int32_t)ec_slave[slave + 1].inputs[19] << 24) - q_ext_mod_elmo_[slave]) *
+                                EXTCNT2RAD[slave] * elmo_ext_axis_direction[slave];
+
+                            if (slave == 1 || slave == 2 || slave == 19 || slave == 20)
+                            {
+                                hommingElmo[slave] = !hommingElmo[slave];
+                            }
+                            txPDO[slave - 1]->maxTorque = (uint16)300;
+                        }
+                    }
+
+                    for (int i = 0; i < ec_slavecount; i++)
+                    {
+                        elmost[i].check_value = (elmost[i].state_elmo & 111);
+
+                        if (elmost[i].check_value_before != elmost[i].check_value)
+                        {
+                            if ((elmost[i].boot_sequence == 0) && (elmost[i].check_value == 0))
+                                elmost[i].boot_sequence++;
+                            if ((elmost[i].boot_sequence == 1) && (elmost[i].check_value == 33))
+                                elmost[i].boot_sequence++;
+                            if ((elmost[i].boot_sequence == 2) && (elmost[i].check_value == 35))
+                                elmost[i].boot_sequence++;
+                            if (elmost[i].boot_sequence == 3)
+                            {
+                                if (elmost[i].check_value == 39)
+                                    elmost[i].boot_sequence++;
+                                if (elmost[i].check_value == 8)
+                                    elmost[i].boot_sequence = 5;
+                            }
+                            if ((elmost[i].boot_sequence == 4) && (elmost[i].check_value == 39))
+                            {
+                                std::cout << "slave : " << i << " WARMSTART" << std::endl;
+                                elmost[i].commutation_ok = true;
+                            }
+                            if ((elmost[i].boot_sequence == 5) && (elmost[i].check_value == 64))
+                            {
+                                std::cout << "slave : " << i << " COMMUTATION INITIALIZING" << std::endl;
+                                elmost[i].boot_sequence = 6;
+                            }
+                            if (elmost[i].boot_sequence == 6)
+                            {
+                                if (elmost[i].check_value == 39)
+                                {
+                                    std::cout << "slave : " << i << " COMMUTATION COMPLETE" << std::endl;
+                                    elmost[i].commutation_ok = true;
+                                }
+                            }
+                        }
+                        elmost[i].check_value_before = elmost[i].check_value;
+                    }
+
+                    ec_send_processdata();
+                    bool waitop = true;
+                    for (int i = 0; i < ec_slavecount; i++)
+                    {
+                        waitop = waitop && elmost[i].commutation_ok;
+                    }
+
+                    if (waitop)
+                    {
+                        cout << "All slave commutation OK" << endl;
+                        break;
+                    }
+                }
+
+                cout << "Control Mode Start ... " << endl;
+                st_start_time = std::chrono::steady_clock::now();
+                cycle_count = 0;
                 while (!de_shutdown)
                 {
                     std::this_thread::sleep_until(st_start_time + cycle_count * cycletime);
 
                     /** PDO I/O refresh */
                     //ec_send_processdata();
-
                     wkc = ec_receive_processdata(0);
 
                     if (wkc >= expectedWKC)
@@ -413,7 +503,7 @@ void ethercatThread1()
                                     checkPosSafety[i] = false;
                                 }
 
-                                checkSafety(i, joint_velocity_limit[i], 10.0 * CTIME / 1E+6); //if angular velocity exceeds 0.5rad/s, Hold to current Position ///
+                                checkSafety(i, joint_velocity_limit[i], 10.0 * CYCLETIME / 1E+6); //if angular velocity exceeds 0.5rad/s, Hold to current Position ///
                             }
                             */
 

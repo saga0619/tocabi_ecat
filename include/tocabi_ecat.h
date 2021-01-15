@@ -13,7 +13,6 @@
 #include "ethercat.h"
 #include "ecat_settings.h"
 
-
 using namespace std;
 
 namespace EtherCAT_Elmo
@@ -79,6 +78,16 @@ namespace ElmoHommingStatus
     };
 }; // namespace ElmoHommingStatus
 
+struct ElmoState
+{
+    int boot_sequence = 0;
+    int state_elmo = 0;
+    int check_value = 0;
+    int check_value_before = 0;
+
+    bool commutation_ok = false;
+};
+
 struct ElmoHomming
 {
     bool hommingElmo;
@@ -106,6 +115,22 @@ enum ElmoJointState
     MOTOR_SAFETY_LOCK = 6,
     MOTOR_SAFETY_DISABLED = 7,
 };
+
+enum
+{
+    FZ_CHECKHOMMINGSTATUS,
+    FZ_FINDHOMMINGSTART,
+    FZ_FINDHOMMINGEND,
+    FZ_FINDHOMMING,
+    FZ_GOTOZEROPOINT,
+    FZ_HOLDZEROPOINT,
+    FZ_FAILEDANDRETURN,
+    FZ_MANUALDETECTION,
+    FZ_TORQUEZERO,
+};
+
+ElmoHomming elmofz[ELMO_DOF];
+ElmoState elmost[ELMO_DOF];
 
 char IOmap[4096];
 OSAL_THREAD_HANDLE thread1;

@@ -16,7 +16,7 @@
 
 #define ELMO_DOF 33
 
-#define CTIME 500
+#define CYCLETIME 500
 
 const double CNT2RAD[ELMO_DOF] =
     {
