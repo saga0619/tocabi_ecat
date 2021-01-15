@@ -4,13 +4,15 @@
 #include <chrono>
 #include <vector>
 
-#include "ethercat.h"
-#include "ecat_settings.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <termios.h>
 #include <unistd.h>
 #include <fcntl.h>
+
+#include "ethercat.h"
+#include "ecat_settings.h"
+
 
 using namespace std;
 
