@@ -212,7 +212,7 @@ void ethercatThread1()
 
                     if (wkc >= expectedWKC)
                     {
-
+                        /*
                         for (int slave = 1; slave <= ec_slavecount; slave++)
                         {
                             if (controlWordGenerate(rxPDO[slave - 1]->statusWord, txPDO[slave - 1]->controlWord))
@@ -220,7 +220,7 @@ void ethercatThread1()
 
                                 reachedInitial[slave - 1] = true;
                             }
-                        }
+                        }*/
                         for (int slave = 1; slave <= ec_slavecount; slave++)
                         {
                             if (reachedInitial[slave - 1])
