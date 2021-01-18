@@ -8,11 +8,9 @@
       "includePath": [
         "/home/dyros/catkin_ws/devel/include/**",
         "/opt/ros/melodic/include/**",
-        "/home/dyros/catkin_ws/src/mujoco_ros_sim/mujoco_ros/include/**",
-        "/home/dyros/catkin_ws/src/dyros_tocabi/tocabi_controller/include/**",
-        "/home/dyros/catkin_ws/src/tocabi_v2/tocabi_elmo/include/**",
-        "/home/dyros/catkin_ws/src/tocabi_gui/include/**",
-        "/usr/include/**"
+        "/home/dyros/catkin_ws/src/tocabi_ecat/include/**",
+        "/usr/include/**",
+        "/usr/local/include/**"
       ],
       "name": "ROS"
     }

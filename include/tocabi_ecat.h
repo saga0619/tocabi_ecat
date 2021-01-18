@@ -9,6 +9,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <fstream>
 
 #include "ethercat.h"
 #include "ecat_settings.h"
@@ -68,7 +69,6 @@ enum
     CW_ENABLEOP = 15,
     CW_DISABLEOP = 7,
 };
-
 
 enum
 {
@@ -154,6 +154,8 @@ volatile int wkc;
 boolean inOP;
 uint8 currentgroup = 0;
 
+char commutation_cache_file[] = "/home/dyros/.tocabi_bootlog/commutationlog";
+char zeropoint_cache_file[] = "/home/dyros/.tocabi_bootlog/zeropointlog";
 int stateElmo[ELMO_DOF];
 int stateElmo_before[ELMO_DOF];
 
@@ -214,13 +216,20 @@ int wait_cnt = 0;
 
 int commutation_joint = 0;
 
+chrono::steady_clock::time_point st_start_time;
+std::chrono::duration<double> time_from_begin;
+std::chrono::microseconds cycletime(CYCLETIME);
+int cycle_count = 0;
+
 atomic<bool> de_operation_ready{false};
 atomic<bool> de_emergency_off{false};
 atomic<bool> de_shutdown{false};
 atomic<bool> de_ecat_lost{false};
 atomic<bool> de_ecat_lost_before{false};
 atomic<bool> de_ecat_recovered{false};
-atomic<bool> de_controlword{false};
+atomic<bool> de_initialize{false};
+atomic<bool> de_commutation_done{false};
+atomic<int> de_debug_level{0};
 
 array<atomic<double>, ELMO_DOF> q_elmo_;
 array<atomic<double>, ELMO_DOF> q_dot_elmo_;
@@ -229,6 +238,8 @@ array<atomic<double>, ELMO_DOF> q_ext_elmo_;
 array<atomic<double>, ELMO_DOF> q_ext_mod_elmo_;
 array<atomic<double>, ELMO_DOF> q_desired_;
 array<atomic<double>, ELMO_DOF> torque_desired_;
+
+double q_zero_point[ELMO_DOF];
 
 void ethercatThread1();
 void ethercatThread2();
@@ -242,15 +253,14 @@ void checkJointStatus();
 void sendJointStatus();
 void getJointCommand();
 
-void saveCommutationLog();
-void loadCommutationLog();
+bool saveCommutationLog();
+bool loadCommutationLog();
 
-void saveZeroPoint();
-void loadZeroPoint();
+bool saveZeroPoint();
+bool loadZeroPoint();
 
 void emergencyOff();
 
 int kbhit(void);
-
 
 int getElmoState(uint16_t state_bit);

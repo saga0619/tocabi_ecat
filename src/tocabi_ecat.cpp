@@ -71,7 +71,7 @@ void ethercatCheck()
 
 void ethercatThread1()
 {
-    char IOmap[4096];
+    char IOmap[4096] = {};
     bool reachedInitial[ELMO_DOF] = {false};
 
     string ifname_str = "enp4s0";
@@ -146,7 +146,6 @@ void ethercatThread1()
             {
                 std::cout << cred << "WARNING : Calculated Workcounter insufficient!" << creset << std::endl;
                 ecat_WKC_ok = true;
-
             }
 
             /** going operational */
@@ -180,26 +179,9 @@ void ethercatThread1()
                     rxPDO[slave - 1] = (EtherCAT_Elmo::ElmoGoldDevice::elmo_gold_rx *)(ec_slave[slave].inputs);
                 }
 
-                std::chrono::duration<double> time_from_begin;
-
-                std::chrono::microseconds cycletime(CYCLETIME);
-
-                int cycle_count = 0;
-
-                //double to_ratio, to_calib;
-
-                for (int i = 0; i < ec_slavecount; i++)
-                    ElmoSafteyMode[i] = 0;
-
-                /*
-                for (int i = 0; i < MODEL_DOF; i++)
-                    ELMO_NM2CNT[i] = dc.tocabi_.vector_NM2CNT[i];
-                */
-
                 //Commutation Checking
-                chrono::steady_clock::time_point st_start_time = std::chrono::steady_clock::now();
-
-                cout << "Initialization Mode" << endl;
+                st_start_time = std::chrono::steady_clock::now();
+                cout << "ELMO : Initialization Mode" << endl;
                 while (!de_shutdown)
                 {
                     std::this_thread::sleep_until(st_start_time + cycle_count * cycletime);
@@ -252,9 +234,29 @@ void ethercatThread1()
                     for (int i = 0; i < ec_slavecount; i++)
                         waitop = waitop && elmost[i].commutation_ok;
 
+                    //bool commutation_required = false;
+                    //for (int i = 0; i < ec_slavecount; i++)
+                    //    commutation_required = commutation_required || elmost[i].commutation_required;
+
                     if (waitop)
                     {
-                        cout << "All slaves Operational" << endl;
+                        if (de_commutation_done)
+                        {
+                            if (saveCommutationLog())
+                            {
+                                cout << "ELMO : Commutation is done, logging success" << endl;
+                                for (int i = 0; i < ELMO_DOF; i++)
+                                {
+                                    q_zero_point[i] = i;
+                                }
+                            }
+                            else
+                            {
+                                cout << "ELMO : Commutaion is done, logging failed" << endl;
+                            }
+                        }
+                        cout << "ELMO : All slaves Operational" << endl;
+
                         break;
                     }
 
@@ -266,12 +268,14 @@ void ethercatThread1()
                     {
                         if (wait_kill_switch)
                         {
-                            cout << "commutation state OK" << endl;
+                            cout << "ELMO : Commutation state OK" << endl;
+                            loadCommutationLog();
+                            loadZeroPoint();
                             wait_kill_switch = false;
                         }
                         if (wait_cnt == 200)
                         {
-                            cout << "slaves status are not OP! maybe kill switch is on?" << endl;
+                            cout << "ELMO : slaves status are not OP! maybe kill switch is on?" << endl;
                         }
 
                         wait_cnt++;
@@ -283,6 +287,7 @@ void ethercatThread1()
                         {
                             if (elmost[i].commutation_required)
                             {
+                                de_commutation_done = true;
                                 total_commutation_cnt++;
                                 if (total_commutation_cnt < 10)
                                     controlWordGenerate(rxPDO[i]->statusWord, txPDO[i]->controlWord);
@@ -312,10 +317,12 @@ void ethercatThread1()
                         }
                     }
 
+                    //zeropoint search
+
                     ec_send_processdata();
                 }
 
-                cout << "Control Mode Start ... " << endl;
+                cout << "ELMO : Control Mode Start ... " << endl;
                 st_start_time = std::chrono::steady_clock::now();
                 cycle_count = 0;
                 while (!de_shutdown)
@@ -374,8 +381,6 @@ void ethercatThread1()
                                      ((int32_t)ec_slave[slave].inputs[18] << 16) +
                                      ((int32_t)ec_slave[slave].inputs[19] << 24) - q_ext_mod_elmo_[slave - 1]) *
                                     EXTCNT2RAD[slave - 1] * elmo_ext_axis_direction[slave - 1];
-
-                                ElmoConnected = true;
 
                                 if (slave == 1 || slave == 2 || slave == 19 || slave == 20)
                                 {
@@ -600,7 +605,7 @@ void ethercatThread1()
         printf("ELMO : No socket connection on %s\nExcecute as root\n", ifname);
     }
 
-    std::cout << "ethercatThread1 Shutdown" << std::endl;
+    std::cout << "ELMO : EthercatThread1 Shutdown" << std::endl;
 }
 
 void ethercatThread2()
@@ -610,26 +615,32 @@ void ethercatThread2()
         ethercatCheck();
 
         int ch = kbhit();
-        //kch = -1;
         if (ch != -1)
         {
             //std::cout << "key input : " << (char)(ch % 256) << std::endl;
             if ((ch % 256 == 'q'))
             {
-                std::cout << "shutdown request" << std::endl;
+                std::cout << "ELMO : shutdown request" << std::endl;
                 de_shutdown = true;
             }
             else if ((ch % 256 == 'i'))
             {
-                std::cout << "start controlword generate" << std::endl;
-                de_controlword = true;
+                std::cout << "ELMO : start searching zero point" << std::endl;
+                de_initialize = true;
+            }
+            else if ((ch % 256 == 'd'))
+            {
+                std::cout << "ELMO : start debug mode" << std::endl;
+                de_debug_level++;
+                if (de_debug_level > 2)
+                    de_debug_level = 0;
             }
 
             this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
 
-    std::cout << "ethercatThread2 Shutdown" << std::endl;
+    std::cout << "ELMO : EthercatThread2 Shutdown" << std::endl;
 }
 
 double elmoJointMove(double init, double angle, double start_time, double traj_time)
@@ -711,20 +722,90 @@ void getJointCommand()
 {
 }
 
-void saveCommutationLog()
+bool saveCommutationLog()
 {
+    std::ofstream comfs(commutation_cache_file, std::ios::binary);
+
+    if (!comfs.is_open())
+    {
+        return false;
+    }
+
+    auto const cache_time = (chrono::system_clock::now()).time_since_epoch().count();
+    comfs.write(reinterpret_cast<char const *>(&cache_time), sizeof cache_time);
+    comfs.close();
+    return true;
 }
 
-void loadCommutationLog()
+bool loadCommutationLog()
 {
+    std::ifstream ifs(commutation_cache_file, std::ios::binary);
+
+    if (!ifs.is_open())
+    {
+        return false;
+    }
+
+    std::chrono::system_clock::rep file_time_rep;
+    if (!ifs.read(reinterpret_cast<char *>(&file_time_rep), sizeof file_time_rep))
+    {
+        return false;
+    }
+    ifs.close();
+
+    std::chrono::system_clock::time_point const cache_valid_time{std::chrono::system_clock::duration{file_time_rep}};
+    std::time_t const file_time = std::chrono::system_clock::to_time_t(cache_valid_time);
+
+    std::chrono::duration<double> commutation_before = std::chrono::system_clock::now() - cache_valid_time;
+    std::cout << std::ctime(&file_time);
+    std::cout << "done " << commutation_before.count() << "seconds before .... " << std::endl;
 }
 
-void saveZeroPoint()
+bool saveZeroPoint()
 {
+    std::ofstream comfs(zeropoint_cache_file, std::ios::binary);
+
+    if (!comfs.is_open())
+    {
+        return false;
+    }
+
+    auto const cache_time = (chrono::system_clock::now()).time_since_epoch().count();
+    comfs.write(reinterpret_cast<char const *>(&cache_time), sizeof cache_time);
+
+    for (int i = 0; i < ELMO_DOF; i++)
+        comfs.write(reinterpret_cast<char const *>(&q_zero_point[i]), sizeof(double));
+
+    comfs.close();
+    return true;
 }
 
-void loadZeroPoint()
+bool loadZeroPoint()
 {
+    std::ifstream ifs(zeropoint_cache_file, std::ios::binary);
+
+    if (!ifs.is_open())
+    {
+        return false;
+    }
+
+    std::chrono::system_clock::rep file_time_rep;
+
+    ifs.read(reinterpret_cast<char *>(&file_time_rep), sizeof file_time_rep);
+    double getzp[ELMO_DOF];
+    for (int i = 0; i < ELMO_DOF; i++)
+        ifs.read(reinterpret_cast<char *>(&getzp[i]), sizeof(double));
+
+    ifs.close();
+
+    std::chrono::system_clock::time_point const cache_valid_time{std::chrono::system_clock::duration{file_time_rep}};
+    std::time_t const file_time = std::chrono::system_clock::to_time_t(cache_valid_time);
+
+    std::chrono::duration<double> commutation_before = std::chrono::system_clock::now() - cache_valid_time;
+    std::cout << "ZP saved at " << std::ctime(&file_time);
+    std::cout << "ZP saved at " << commutation_before.count() << "seconds before .... " << std::endl;
+    for (int i = 0; i < ELMO_DOF; i++)
+        cout << getzp[i] << endl;
 }
 
 void emergencyOff() //TorqueZero
@@ -738,23 +819,18 @@ void emergencyOff() //TorqueZero
 
 int kbhit(void)
 {
-
     struct termios oldt, newt;
-    int ch;
-    int oldf;
-
+    int ch = 0;
+    int oldf = 0;
     tcgetattr(STDIN_FILENO, &oldt);
     newt = oldt;
     newt.c_lflag &= ~(ICANON | ECHO | ISIG);
     tcsetattr(STDIN_FILENO, TCSANOW, &newt);
     oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
     fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
-
     int nread = read(0, &ch, 1);
-
     tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
     fcntl(STDIN_FILENO, F_SETFL, oldf);
-
     if (nread >= 1)
     {
         return ch;
