@@ -995,7 +995,7 @@ void findZeroPoint(int slv_number)
             }
             else
             {
-                printf("Motor %d : Not enough length start point : %f, Current Point %f \n", slv_number, elmofz[slv_number].posStart, q_elmo_[slv_number]);
+                std::cout << "Motor " << slv_number << " : Not enough length start point : " << elmofz[slv_number].posStart << ", Current Point " << q_elmo_[slv_number] << endl;
 
                 //std::cout << "off : homming turned off, but not enough length start point : " << elmofz[slv_number].posStart << " Current off point : " << q_elmo_[slv_number] << std::endl;
             }
