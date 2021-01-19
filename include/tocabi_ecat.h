@@ -240,13 +240,18 @@ atomic<bool> de_initialize{false};
 atomic<bool> de_commutation_done{false};
 atomic<int> de_debug_level{0};
 
-array<atomic<double>, ELMO_DOF> q_elmo_;
-array<atomic<double>, ELMO_DOF> q_dot_elmo_;
-array<atomic<double>, ELMO_DOF> torque_elmo_;
+array<atomic<double>, ELMO_DOF> q_elmo_;        //sendstate
+array<atomic<double>, ELMO_DOF> q_dot_elmo_;    //sendstate
+array<atomic<double>, ELMO_DOF> torque_elmo_;   //sendstate
+array<atomic<int>, ELMO_DOF> joint_state_elmo_; //sendstate
+
+array<atomic<double>, ELMO_DOF> torque_desired_; //getcommand
+
+
+
 array<atomic<double>, ELMO_DOF> q_ext_elmo_;
 array<atomic<double>, ELMO_DOF> q_ext_mod_elmo_;
 array<atomic<double>, ELMO_DOF> q_desired_;
-array<atomic<double>, ELMO_DOF> torque_desired_;
 
 double q_zero_point[ELMO_DOF];
 
