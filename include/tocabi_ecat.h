@@ -176,11 +176,20 @@ EtherCAT_Elmo::ElmoGoldDevice::elmo_gold_tx *txPDO[ELMO_DOF];
 bool ElmoConnected = false;
 bool ElmoTerminate = false;
 
-std::vector<int> fz_group1;
+int fz_group1[18] = {
+    Neck_Joint, Head_Joint,
+    R_Shoulder1_Joint, R_Shoulder2_Joint, R_Shoulder3_Joint, R_Armlink_Joint, R_Elbow_Joint, R_Forearm_Joint, R_Wrist1_Joint, R_Wrist2_Joint,
+    L_Shoulder1_Joint, L_Shoulder2_Joint, L_Shoulder3_Joint, L_Armlink_Joint, L_Elbow_Joint, L_Forearm_Joint, L_Wrist1_Joint, L_Wrist2_Joint};
+
+int fz_group2[3] = {
+    Upperbody_Joint, Waist1_Joint, Waist2_Joint};
+
+int fz_group3[12] = {
+    R_HipYaw_Joint, R_HipRoll_Joint, R_HipPitch_Joint, R_Knee_Joint, R_AnklePitch_Joint, R_AnkleRoll_Joint,
+    L_HipYaw_Joint, L_HipRoll_Joint, L_HipPitch_Joint, L_Knee_Joint, L_AnklePitch_Joint, L_AnkleRoll_Joint};
+
 bool fz_group1_check = false;
-std::vector<int> fz_group2;
 bool fz_group2_check = false;
-std::vector<int> fz_group3;
 bool fz_group3_check = false;
 int fz_group = 0;
 
@@ -264,3 +273,9 @@ void emergencyOff();
 int kbhit(void);
 
 int getElmoState(uint16_t state_bit);
+
+const std::string cred("\033[0;31m");
+const std::string creset("\033[0m");
+const std::string cblue("\033[0;34m");
+const std::string cgreen("\033[0;32m");
+const std::string cyellow("\033[0;33m");

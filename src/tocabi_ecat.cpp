@@ -317,6 +317,10 @@ void ethercatThread1()
                         }
                     }
 
+
+
+                    
+
                     //zeropoint search
 
                     ec_send_processdata();
