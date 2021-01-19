@@ -281,7 +281,7 @@ bool controlWordGenerate(const uint16_t statusWord, uint16_t &controlWord);
 
 void checkJointSafety();
 void checkJointStatus();
-void sendJointStatus(array<atomic<double>, ELMO_DOF> q_elmo, array<atomic<double>, ELMO_DOF> q_dot_elmo, array<atomic<double>, ELMO_DOF> torque_elmo);
+void sendJointStatus(array<atomic<double>, ELMO_DOF> q_elmo, array<atomic<double>, ELMO_DOF> q_dot_elmo, array<atomic<int>, ELMO_DOF> joint_state_elmo, array<atomic<double>, ELMO_DOF> torque_elmo);
 void getJointCommand(array<atomic<double>, ELMO_DOF> &torque_desired);
 
 bool saveCommutationLog();

@@ -714,14 +714,16 @@ void checkJointStatus()
 {
 }
 
-void sendJointStatus(array<atomic<double>, ELMO_DOF> q_elmo, array<atomic<double>, ELMO_DOF> q_dot_elmo, array<atomic<double>, ELMO_DOF> torque_elmo)
+void sendJointStatus(array<atomic<double>, ELMO_DOF> q_elmo, array<atomic<double>, ELMO_DOF> q_dot_elmo, array<atomic<int>, ELMO_DOF> joint_state_elmo, array<atomic<double>, ELMO_DOF> torque_elmo)
 {
-    int sendJointPos, sendJointDot, sendJointCurrent;
+    int sendJointPos, sendJointDot, sendJointCurrent, sendJointStatus;
     double *jointPos, *jointDot, *jointCurrent;
+    int *jointStatus;
 
     sendJointPos = shmget(sendJointKey, sizeof(q_elmo_), 0666|IPC_CREAT);
     sendJointDot = shmget(sendJointDotKey, sizeof(q_dot_elmo_), 0666|IPC_CREAT);
     sendJointCurrent = shmget(sendJointCurrentKey, sizeof(torque_elmo_), 0666|IPC_CREAT);
+    sendJointStatus = shmget(sendJointStatusKey, sizeof(joint_state_elmo), 0666|IPC_CREAT);
 
     if(sendJointPos == -1)
     {
@@ -737,21 +739,29 @@ void sendJointStatus(array<atomic<double>, ELMO_DOF> q_elmo, array<atomic<double
     {
         printf("SendJointCurrent shmget send failed");
     }
+
+    if(sendJointStatus == -1)
+    {
+        printf("sendJointStatus shmget send failed");
+    }
     
     jointPos = (double*)shmat(sendJointPos, NULL, 0);
     jointDot = (double*)shmat(sendJointDot, NULL, 0);
     jointCurrent = (double*)shmat(sendJointCurrent, NULL, 0);
+    jointStatus = (int*)shmat(sendJointStatus, NULL, 0);
 
     for(int i = 0; i < ELMO_DOF; i++)
     {
         jointPos[i] = q_elmo[i];
         jointDot[i] = q_dot_elmo[i];
         jointCurrent[i] = torque_elmo[i];
+        jointStatus[i] = joint_state_elmo[i];
     }
 
     shmdt(jointPos);
     shmdt(jointDot);
     shmdt(jointCurrent);
+    shmdt(jointStatus);
 }
 
 void getJointCommand(array<atomic<double>, ELMO_DOF> &torque_desired)
