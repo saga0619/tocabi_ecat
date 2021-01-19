@@ -247,7 +247,7 @@ void ethercatThread1()
                                 cout << "ELMO : Commutation is done, logging success" << endl;
                                 for (int i = 0; i < ELMO_DOF; i++)
                                 {
-                                    q_zero_point[i] = i;
+                                    q_zero_elmo_[i] = i;
                                 }
                             }
                             else
@@ -478,7 +478,7 @@ void ethercatThread1()
                                 if (ElmoMode[i] == EM_POSITION)
                                 {
                                     txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousPositionmode;
-                                    txPDO[i]->targetPosition = (int)(Dr[i] * RAD2CNT[i] * positionDesiredElmo[i]);
+                                    txPDO[i]->targetPosition = (int)(Dr[i] * RAD2CNT[i] * q_desired_elmo_[i]);
                                 }
                                 else if (ElmoMode[i] == EM_TORQUE)
                                 {
@@ -759,7 +759,7 @@ void getJointCommand(array<atomic<double>, ELMO_DOF> &torque_desired)
     int getJointTorque;
     double *jointTorque;
 
-    getJointTorque = shmget(getJointDesiredTorqueKey, sizeof(torque_desired_), 0666|IPC_CREAT);
+    getJointTorque = shmget(getJointDesiredTorqueKey, sizeof(torque_desired), 0666|IPC_CREAT);
 
     if(getJointTorque == -1)
     {
@@ -828,7 +828,7 @@ bool saveZeroPoint()
     comfs.write(reinterpret_cast<char const *>(&cache_time), sizeof cache_time);
 
     for (int i = 0; i < ELMO_DOF; i++)
-        comfs.write(reinterpret_cast<char const *>(&q_zero_point[i]), sizeof(double));
+        comfs.write(reinterpret_cast<char const *>(&q_zero_elmo_[i]), sizeof(double));
 
     comfs.close();
     return true;
@@ -925,5 +925,243 @@ int getElmoState(uint16_t state_bit)
     else
     {
         return ELMO_OPERATION_ENABLE;
+    }
+}
+
+void findzeroLeg()
+{
+    for (int i = 0; i < 6; i++)
+    {
+        q_zero_elmo_[i + R_HipYaw_Joint] = q_elmo_[i + R_HipYaw_Joint] - q_ext_elmo_[i + R_HipYaw_Joint];
+        //pub_to_gui(dc, "jointzp %d %d", i + R_HipYaw_Joint, 1);
+        q_zero_elmo_[i + L_HipYaw_Joint] = q_elmo_[i + L_HipYaw_Joint] - q_ext_elmo_[i + L_HipYaw_Joint];
+        //pub_to_gui(dc, "jointzp %d %d", i + TOCABI::L_HipYaw_Joint, 1);
+        std::cout << ELMO_NAME[i + R_HipRoll_Joint] << " pz IE P : " << q_elmo_[i + R_HipRoll_Joint] << " pz EE P : " << q_ext_elmo_[i + R_HipRoll_Joint] << std::endl;
+        std::cout << ELMO_NAME[i + L_HipRoll_Joint] << " pz ELMO : " << q_elmo_[i + L_HipRoll_Joint] << " pz ELMO : " << q_ext_elmo_[i + L_HipRoll_Joint] << std::endl;
+    }
+}
+void findZeroPointlow(int slv_number)
+{
+    double velocity = 0.1;
+    double fztime = 3.0;
+    if (elmofz[slv_number].findZeroSequence == FZ_CHECKHOMMINGSTATUS)
+    {
+        elmofz[slv_number].initTime = control_time_real_;
+        elmofz[slv_number].initPos = q_elmo_[slv_number];
+        elmofz[slv_number].findZeroSequence = FZ_FINDHOMMINGSTART;
+
+        if (q_ext_elmo_[slv_number] > 0)
+        {
+            elmofz[slv_number].init_direction = -1;
+        }
+        else
+        {
+            elmofz[slv_number].init_direction = 1;
+        }
+
+        if ((q_ext_elmo_[slv_number] > 3.14) || (q_ext_elmo_[slv_number < -3.14]))
+        {
+
+            std::cout << cred << "elmo reboot required. joint " << slv_number << "external encoder error" << q_ext_elmo_[slv_number] << std::endl;
+        }
+        else if (slv_number == 24)
+        {
+            std::cout << "positionExternal OK " << q_ext_elmo_[slv_number] << std::endl;
+        }
+    }
+
+    if (elmofz[slv_number].findZeroSequence == FZ_FINDHOMMINGSTART)
+    {
+
+        ElmoMode[slv_number] = EM_POSITION;
+        q_desired_elmo_[slv_number] = elmoJointMove(elmofz[slv_number].initPos, elmofz[slv_number].init_direction * 0.6, elmofz[slv_number].initTime, fztime * 4.0);
+
+        if (control_time_real_ == elmofz[slv_number].initTime)
+        {
+            //std::cout << "joint " << slv_number << "  init pos : " << elmofz[slv_number].initPos << "   goto " << elmofz[slv_number].initPos + elmofz[slv_number].init_direction * 0.6 << std::endl;
+        }
+
+        if (q_ext_elmo_[slv_number] * elmofz[slv_number].init_direction > 0)
+        {
+            q_zero_elmo_[slv_number] = q_elmo_[slv_number];
+            elmofz[slv_number].findZeroSequence = FZ_FINDHOMMINGEND;
+            //pub_to_gui(dc, "jointzp %d %d", slv_number, 1);
+            elmofz[slv_number].result = ElmoHommingStatus::SUCCESS;
+        }
+        if (control_time_real_ > elmofz[slv_number].initTime + fztime * 4.0)
+        {
+            elmofz[slv_number].result == ElmoHommingStatus::FAILURE;
+        }
+    }
+}
+void findZeroPoint(int slv_number)
+{
+    double fztime = 3.0;
+    double fztime_manual = 300.0;
+    if (elmofz[slv_number].findZeroSequence == FZ_CHECKHOMMINGSTATUS)
+    {
+        //pub_to_gui(dc, "jointzp %d %d", slv_number, 0);
+        if (hommingElmo[slv_number])
+        {
+            //std::cout << "motor " << slv_number << " init state : homming on" << std::endl;
+            elmofz[slv_number].findZeroSequence = FZ_FINDHOMMINGSTART;
+            elmofz[slv_number].initTime = control_time_real_;
+            elmofz[slv_number].initPos = q_elmo_[slv_number];
+            elmofz[slv_number].firstPos = q_elmo_[slv_number];
+        }
+        else
+        {
+            //std::cout << "motor " << slv_number << " init state : homming off" << std::endl;
+            elmofz[slv_number].findZeroSequence = FZ_FINDHOMMING;
+            elmofz[slv_number].initTime = control_time_real_;
+            elmofz[slv_number].initPos = q_elmo_[slv_number];
+            elmofz[slv_number].firstPos = q_elmo_[slv_number];
+        }
+    }
+    else if (elmofz[slv_number].findZeroSequence == FZ_FINDHOMMINGSTART)
+    {
+        //go to + 0.3rad until homming sensor turn off
+        ElmoMode[slv_number] = EM_POSITION;
+        q_desired_elmo_[slv_number] = elmoJointMove(elmofz[slv_number].initPos, 0.3, elmofz[slv_number].initTime, fztime);
+
+        if ((hommingElmo[slv_number] == 0) && (hommingElmo_before[slv_number] == 0))
+        {
+            //std::cout << "motor " << slv_number << " seq 1 complete, wait 1 sec" << std::endl;
+            hommingElmo_before[slv_number] = hommingElmo[slv_number];
+            elmofz[slv_number].findZeroSequence = FZ_FINDHOMMINGEND;
+            elmofz[slv_number].initTime = control_time_real_;
+            elmofz[slv_number].posStart = q_elmo_[slv_number];
+            elmofz[slv_number].initPos = q_elmo_[slv_number];
+        }
+    }
+    else if (elmofz[slv_number].findZeroSequence == FZ_FINDHOMMINGEND)
+    {
+        ElmoMode[slv_number] = EM_POSITION;
+        q_desired_elmo_[slv_number] = elmoJointMove(elmofz[slv_number].posStart, -0.3, elmofz[slv_number].initTime, fztime);
+
+        //go to -20deg until homming turn on, and turn off
+        if ((hommingElmo_before[slv_number] == 1) && (hommingElmo[slv_number] == 0))
+        {
+            if (abs(elmofz[slv_number].posStart - q_elmo_[slv_number]) > elmofz[slv_number].req_length)
+            {
+                elmofz[slv_number].posEnd = q_elmo_[slv_number];
+                elmofz[slv_number].endFound = 1;
+            }
+            else
+            {
+                std::cout << "Motor " << slv_number << " : Not enough length start point : " << elmofz[slv_number].posStart << ", Current Point " << q_elmo_[slv_number] << endl;
+
+                //std::cout << "off : homming turned off, but not enough length start point : " << elmofz[slv_number].posStart << " Current off point : " << q_elmo_[slv_number] << std::endl;
+            }
+        }
+        else if ((hommingElmo_before[slv_number] == 0) && (hommingElmo[slv_number] == 0))
+        {
+            if (elmofz[slv_number].endFound == 1)
+            {
+                //std::cout << "motor " << slv_number << " seq 2 complete" << std::endl;
+                elmofz[slv_number].findZeroSequence = FZ_GOTOZEROPOINT;
+                elmofz[slv_number].initPos = q_elmo_[slv_number];
+                q_zero_elmo_[slv_number] = (elmofz[slv_number].posEnd + elmofz[slv_number].posStart) * 0.5 + q_zero_mod_elmo_[slv_number];
+                elmofz[slv_number].initTime = control_time_real_;
+                //std::cout << "on : Motor " << slv_number << " zero point found : " << positionZeroElmo[slv_number] << std::endl;
+            }
+        }
+
+        if (control_time_real_ > elmofz[slv_number].initTime + fztime)
+        {
+            //If dection timeout, go to failure sequence
+            elmofz[slv_number].initTime = control_time_real_;
+            elmofz[slv_number].findZeroSequence = 6;
+            elmofz[slv_number].initPos = q_elmo_[slv_number];
+        }
+    }
+    else if (elmofz[slv_number].findZeroSequence == FZ_FINDHOMMING)
+    { //start from unknown
+
+        ElmoMode[slv_number] = EM_POSITION;
+        q_desired_elmo_[slv_number] = elmoJointMove(elmofz[slv_number].initPos, elmofz[slv_number].init_direction * 0.3, elmofz[slv_number].initTime, fztime);
+        if (control_time_real_ > (elmofz[slv_number].initTime + fztime))
+        {
+            q_desired_elmo_[slv_number] = elmoJointMove(elmofz[slv_number].initPos + 0.3 * elmofz[slv_number].init_direction, -0.6 * elmofz[slv_number].init_direction, elmofz[slv_number].initTime + fztime, fztime * 2.0);
+        }
+
+        if (hommingElmo[slv_number] && hommingElmo_before[slv_number])
+        {
+            //std::cout << "homming found ! to sequence 1 ! " << std::endl;
+            elmofz[slv_number].findZeroSequence = 1;
+            elmofz[slv_number].initTime = control_time_real_;
+            elmofz[slv_number].initPos = q_elmo_[slv_number];
+        }
+
+        if (control_time_real_ > (elmofz[slv_number].initTime + fztime * 3.0))
+        {
+            //If dection timeout, go to failure sequence
+            elmofz[slv_number].initTime = control_time_real_;
+            elmofz[slv_number].findZeroSequence = 6;
+            elmofz[slv_number].initPos = q_elmo_[slv_number];
+        }
+    }
+    else if (elmofz[slv_number].findZeroSequence == FZ_GOTOZEROPOINT)
+    {
+        ElmoMode[slv_number] = EM_POSITION;
+
+        double go_to_zero_dur = fztime * (abs(q_zero_elmo_[slv_number] - elmofz[slv_number].initPos) / 0.3);
+        q_desired_elmo_[slv_number] = elmoJointMove(elmofz[slv_number].initPos, q_zero_elmo_[slv_number] - elmofz[slv_number].initPos, elmofz[slv_number].initTime, go_to_zero_dur);
+
+        //go to zero position
+        if (control_time_real_ > (elmofz[slv_number].initTime + go_to_zero_dur))
+        {
+            //std::cout << "go to zero complete !" << std::endl;
+            printf("Motor %d %s : Zero Point Found : %8.6f, homming length : %8.6f ! \n", slv_number, ELMO_NAME[slv_number].c_str(), q_zero_elmo_[slv_number], abs(elmofz[slv_number].posStart - elmofz[slv_number].posEnd));
+            //pub_to_gui(dc, "jointzp %d %d", slv_number, 1);
+            elmofz[slv_number].result = ElmoHommingStatus::SUCCESS;
+            //std::cout << slv_number << "Start : " << elmofz[slv_number].posStart << "End:" << elmofz[slv_number].posEnd << std::endl;
+            //q_desired_elmo_[slv_number] = positionZeroElmo(slv_number);
+            elmofz[slv_number].findZeroSequence = 8; // torque to zero -> 8 position hold -> 5
+            ElmoMode[slv_number] = EM_TORQUE;
+            torque_desired_elmo_[slv_number] = 0.0;
+        }
+    }
+    else if (elmofz[slv_number].findZeroSequence == 5)
+    {
+        //find zero complete, hold zero position.
+        ElmoMode[slv_number] = EM_POSITION;
+        q_desired_elmo_[slv_number] = q_zero_elmo_[slv_number];
+    }
+    else if (elmofz[slv_number].findZeroSequence == 6)
+    {
+        //find zero point failed
+        ElmoMode[slv_number] = EM_POSITION;
+        q_desired_elmo_[slv_number] = elmoJointMove(elmofz[slv_number].initPos, elmofz[slv_number].firstPos - elmofz[slv_number].initPos, elmofz[slv_number].initTime, fztime);
+        if (control_time_real_ > (elmofz[slv_number].initTime + fztime))
+        {
+            elmofz[slv_number].findZeroSequence = 7;
+            printf("Motor %d %s : Zero point detection Failed. Manual Detection Required. \n", slv_number, ELMO_NAME[slv_number].c_str());
+            //pub_to_gui(dc, "jointzp %d %d", slv_number, 2);
+            elmofz[slv_number].result = ElmoHommingStatus::FAILURE;
+            elmofz[slv_number].initTime = control_time_real_;
+        }
+    }
+    else if (elmofz[slv_number].findZeroSequence == 7)
+    {
+        ElmoMode[slv_number] = EM_TORQUE;
+        torque_desired_elmo_[slv_number] = 0.0;
+        if (hommingElmo[slv_number] && hommingElmo_before[slv_number])
+        {
+            elmofz[slv_number].findZeroSequence = 1;
+            elmofz[slv_number].initTime = control_time_real_;
+            elmofz[slv_number].initPos = q_elmo_[slv_number];
+        }
+        if (control_time_real_ > (elmofz[slv_number].initTime + fztime_manual))
+        {
+            printf("Motor %d %s :  Manual Detection Failed. \n", slv_number, ELMO_NAME[slv_number].c_str());
+            //pub_to_gui(dc, "jointzp %d %d", slv_number, 3);
+            elmofz[slv_number].findZeroSequence = 8;
+        }
+    }
+    else if (elmofz[slv_number].findZeroSequence == 8)
+    {
+        ElmoMode[slv_number] = EM_TORQUE;
+        torque_desired_elmo_[slv_number] = 0.0;
     }
 }

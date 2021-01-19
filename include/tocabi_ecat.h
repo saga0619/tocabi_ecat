@@ -125,11 +125,12 @@ enum ElmoJointState
 {
     MOTOR_COMMUTATION = 1,
     MOTOR_OPERATION_READY = 2,
-    MOTOR_SEARCHING_ZP = 3,
-    MOTOR_SEARCHING_MANUAL = 4,
-    MOTOR_SEARCHING_COMPLETE = 5,
-    MOTOR_SAFETY_LOCK = 6,
-    MOTOR_SAFETY_DISABLED = 7,
+    MOTOR_SEARChING_REQUIRED = 3,
+    MOTOR_SEARCHING_ZP = 4,
+    MOTOR_SEARCHING_MANUAL = 5,
+    MOTOR_SEARCHING_COMPLETE = 6,
+    MOTOR_SAFETY_LOCK = 7,
+    MOTOR_SAFETY_DISABLED = 8,
 };
 
 enum
@@ -147,6 +148,14 @@ enum
 
 ElmoHomming elmofz[ELMO_DOF];
 ElmoState elmost[ELMO_DOF];
+int ElmoMode[ELMO_DOF];
+enum
+{
+    EM_POSITION = 11,
+    EM_TORQUE = 22,
+    EM_DEFAULT = 33,
+    EM_COMMUTATION = 44,
+};
 
 char IOmap[4096];
 OSAL_THREAD_HANDLE thread1;
@@ -178,11 +187,20 @@ EtherCAT_Elmo::ElmoGoldDevice::elmo_gold_tx *txPDO[ELMO_DOF];
 bool ElmoConnected = false;
 bool ElmoTerminate = false;
 
-std::vector<int> fz_group1;
+int fz_group1[18] = {
+    Neck_Joint, Head_Joint,
+    R_Shoulder1_Joint, R_Shoulder2_Joint, R_Shoulder3_Joint, R_Armlink_Joint, R_Elbow_Joint, R_Forearm_Joint, R_Wrist1_Joint, R_Wrist2_Joint,
+    L_Shoulder1_Joint, L_Shoulder2_Joint, L_Shoulder3_Joint, L_Armlink_Joint, L_Elbow_Joint, L_Forearm_Joint, L_Wrist1_Joint, L_Wrist2_Joint};
+
+int fz_group2[3] = {
+    Upperbody_Joint, Waist1_Joint, Waist2_Joint};
+
+int fz_group3[12] = {
+    R_HipYaw_Joint, R_HipRoll_Joint, R_HipPitch_Joint, R_Knee_Joint, R_AnklePitch_Joint, R_AnkleRoll_Joint,
+    L_HipYaw_Joint, L_HipRoll_Joint, L_HipPitch_Joint, L_Knee_Joint, L_AnklePitch_Joint, L_AnkleRoll_Joint};
+
 bool fz_group1_check = false;
-std::vector<int> fz_group2;
 bool fz_group2_check = false;
-std::vector<int> fz_group3;
 bool fz_group3_check = false;
 int fz_group = 0;
 
@@ -233,13 +251,16 @@ atomic<bool> de_initialize{false};
 atomic<bool> de_commutation_done{false};
 atomic<int> de_debug_level{0};
 
-array<atomic<double>, ELMO_DOF> q_elmo_;
-array<atomic<double>, ELMO_DOF> q_dot_elmo_;
-array<atomic<double>, ELMO_DOF> torque_elmo_;
+array<atomic<double>, ELMO_DOF> q_elmo_;        //sendstate
+array<atomic<double>, ELMO_DOF> q_dot_elmo_;    //sendstate
+array<atomic<double>, ELMO_DOF> torque_elmo_;   //sendstate
+array<atomic<int>, ELMO_DOF> joint_state_elmo_; //sendstate
+
+array<atomic<double>, ELMO_DOF> torque_desired_elmo_; //getcommand
+
 array<atomic<double>, ELMO_DOF> q_ext_elmo_;
 array<atomic<double>, ELMO_DOF> q_ext_mod_elmo_;
-array<atomic<double>, ELMO_DOF> q_desired_;
-array<atomic<double>, ELMO_DOF> torque_desired_;
+array<atomic<double>, ELMO_DOF> q_desired_elmo_;
 
 key_t sendJointKey = 2021;
 key_t sendJointDotKey = 2022;
@@ -249,6 +270,8 @@ key_t getJointDesiredTorqueKey = 2025;
 
 double q_zero_point[ELMO_DOF];
 
+double q_zero_elmo_[ELMO_DOF];
+double q_zero_mod_elmo_[ELMO_DOF];
 void ethercatThread1();
 void ethercatThread2();
 void ethercatCheck();
@@ -272,3 +295,13 @@ void emergencyOff();
 int kbhit(void);
 
 int getElmoState(uint16_t state_bit);
+
+void findzeroLeg();
+void findZeroPointlow(int slv_number);
+void findZeroPoint(int slv_number);
+
+const std::string cred("\033[0;31m");
+const std::string creset("\033[0m");
+const std::string cblue("\033[0;34m");
+const std::string cgreen("\033[0;32m");
+const std::string cyellow("\033[0;33m");

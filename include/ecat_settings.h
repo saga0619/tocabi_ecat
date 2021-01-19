@@ -16,7 +16,54 @@
 
 #define ELMO_DOF 33
 
+#define LEG_DOF 12
+
+#define UPPERBODY_DOF 21
+
 #define CYCLETIME 500
+
+enum
+{
+    Head_Joint,
+    Neck_Joint,
+    R_Wrist1_Joint,
+    R_Wrist2_Joint,
+    L_Wrist2_Joint,
+    L_Wrist1_Joint,
+    L_Shoulder3_Joint,
+    L_Armlink_Joint,
+    R_Armlink_Joint,
+    R_Shoulder3_Joint,
+    R_Elbow_Joint,
+    R_Forearm_Joint,
+    L_Forearm_Joint,
+    L_Elbow_Joint,
+    L_Shoulder1_Joint,
+    L_Shoulder2_Joint,
+    R_Shoulder2_Joint,
+    R_Shoulder1_Joint,
+    Upperbody_Joint,
+    Waist2_Joint,
+    R_HipYaw_Joint,
+    R_HipRoll_Joint,
+    R_HipPitch_Joint,
+    R_Knee_Joint,
+    R_AnklePitch_Joint,
+    R_AnkleRoll_Joint,
+    Waist1_Joint,
+    L_HipYaw_Joint,
+    L_HipRoll_Joint,
+    L_HipPitch_Joint,
+    L_Knee_Joint,
+    L_AnklePitch_Joint,
+    L_AnkleRoll_Joint
+};
+const std::string ELMO_NAME[ELMO_DOF] = {
+    "Head_Joint", "Neck_Joint", "R_Wrist1_Joint", "R_Wrist2_Joint", "L_Wrist2_Joint", "L_Wrist1_Joint", "L_Shoulder3_Joint", "L_Armlink_Joint",
+    "R_Armlink_Joint", "R_Shoulder3_Joint", "R_Elbow_Joint", "R_Forearm_Joint", "L_Forearm_Joint", "L_Elbow_Joint", "L_Shoulder1_Joint", "L_Shoulder2_Joint",
+    "R_Shoulder2_Joint", "R_Shoulder1_Joint", "Upperbody_Joint", "Waist2_Joint", "R_HipYaw_Joint", "R_HipRoll_Joint", "R_HipPitch_Joint",
+    "R_Knee_Joint", "R_AnklePitch_Joint", "R_AnkleRoll_Joint", "Waist1_Joint", "L_HipYaw_Joint", "L_HipRoll_Joint", "L_HipPitch_Joint",
+    "L_Knee_Joint", "L_AnklePitch_Joint", "L_AnkleRoll_Joint"};
 
 const double CNT2RAD[ELMO_DOF] =
     {
@@ -53,7 +100,7 @@ const double EXTRAD2CNT[ELMO_DOF] =
         EXT_RAD_TO_CNT_46, EXT_RAD_TO_CNT_46, EXT_RAD_TO_CNT_46, EXT_RAD_TO_CNT_46, EXT_RAD_TO_CNT_46, EXT_RAD_TO_CNT_46,
         EXT_RAD_TO_CNT_46, EXT_RAD_TO_CNT_46, EXT_RAD_TO_CNT_46, EXT_RAD_TO_CNT_46, EXT_RAD_TO_CNT_46, EXT_RAD_TO_CNT_46,
         EXT_RAD_TO_CNT_46, EXT_RAD_TO_CNT_46, EXT_RAD_TO_CNT_46};
-        
+
 const double NM2CNT[ELMO_DOF] =
     {         //Elmo 순서
         95.0, //head
@@ -132,8 +179,7 @@ const double elmo_ext_axis_direction[ELMO_DOF] =
      -1, -1, 1, 1, 1, -1,
      -1, 1, -1};
 
-const std::string cred("\033[0;31m");
-const std::string creset("\033[0m");
-const std::string cblue("\033[0;34m");
-const std::string cgreen("\033[0;32m");
-const std::string cyellow("\033[0;33m");
+const double upper_homming_minimum_required_length[ELMO_DOF] =
+    {
+
+};
