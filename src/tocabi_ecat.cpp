@@ -445,6 +445,7 @@ void ethercatThread1()
                                 cout << "L" << i << "\t";
                             for (int i = 0; i < 8; i++)
                                 cout << "R" << i << "\t";
+                            cout << endl;
                             elmofz[R_Shoulder3_Joint].findZeroSequence = 7;
                             elmofz[R_Shoulder3_Joint].initTime = control_time_real_;
                             elmofz[L_Shoulder3_Joint].findZeroSequence = 7;
@@ -983,37 +984,37 @@ void sendJointStatus(array<atomic<double>, ELMO_DOF> q_elmo, array<atomic<double
     double *jointPos, *jointDot, *jointCurrent;
     int *jointStatus;
 
-    sendJointPos = shmget(sendJointKey, sizeof(q_elmo_), 0666|IPC_CREAT);
-    sendJointDot = shmget(sendJointDotKey, sizeof(q_dot_elmo_), 0666|IPC_CREAT);
-    sendJointCurrent = shmget(sendJointCurrentKey, sizeof(torque_elmo_), 0666|IPC_CREAT);
-    sendJointStatus = shmget(sendJointStatusKey, sizeof(joint_state_elmo), 0666|IPC_CREAT);
+    sendJointPos = shmget(sendJointKey, sizeof(q_elmo_), 0666 | IPC_CREAT);
+    sendJointDot = shmget(sendJointDotKey, sizeof(q_dot_elmo_), 0666 | IPC_CREAT);
+    sendJointCurrent = shmget(sendJointCurrentKey, sizeof(torque_elmo_), 0666 | IPC_CREAT);
+    sendJointStatus = shmget(sendJointStatusKey, sizeof(joint_state_elmo), 0666 | IPC_CREAT);
 
-    if(sendJointPos == -1)
+    if (sendJointPos == -1)
     {
         printf("SendJointPos shmget send failed");
     }
 
-    if(sendJointDot == -1)
+    if (sendJointDot == -1)
     {
         printf("SendJointDot shmget send failed");
     }
 
-    if(sendJointCurrent == -1)
+    if (sendJointCurrent == -1)
     {
         printf("SendJointCurrent shmget send failed");
     }
 
-    if(sendJointStatus == -1)
+    if (sendJointStatus == -1)
     {
         printf("sendJointStatus shmget send failed");
     }
-    
-    jointPos = (double*)shmat(sendJointPos, NULL, 0);
-    jointDot = (double*)shmat(sendJointDot, NULL, 0);
-    jointCurrent = (double*)shmat(sendJointCurrent, NULL, 0);
-    jointStatus = (int*)shmat(sendJointStatus, NULL, 0);
 
-    for(int i = 0; i < ELMO_DOF; i++)
+    jointPos = (double *)shmat(sendJointPos, NULL, 0);
+    jointDot = (double *)shmat(sendJointDot, NULL, 0);
+    jointCurrent = (double *)shmat(sendJointCurrent, NULL, 0);
+    jointStatus = (int *)shmat(sendJointStatus, NULL, 0);
+
+    for (int i = 0; i < ELMO_DOF; i++)
     {
         jointPos[i] = q_elmo[i];
         jointDot[i] = q_dot_elmo[i];
@@ -1032,16 +1033,16 @@ void getJointCommand(array<atomic<double>, ELMO_DOF> &torque_desired)
     int getJointTorque;
     double *jointTorque;
 
-    getJointTorque = shmget(getJointDesiredTorqueKey, sizeof(torque_desired), 0666|IPC_CREAT);
+    getJointTorque = shmget(getJointDesiredTorqueKey, sizeof(torque_desired), 0666 | IPC_CREAT);
 
-    if(getJointTorque == -1)
+    if (getJointTorque == -1)
     {
         printf("GetJointTorque shmget send failed");
     }
 
-    jointTorque = (double*)shmat(getJointTorque, NULL, 0);
+    jointTorque = (double *)shmat(getJointTorque, NULL, 0);
 
-    for(int i = 0; i < ELMO_DOF; i++)
+    for (int i = 0; i < ELMO_DOF; i++)
     {
         torque_desired[i] = jointTorque[i];
     }
@@ -1408,7 +1409,7 @@ void findZeroPoint(int slv_number)
         if (control_time_real_ > (elmofz[slv_number].initTime + go_to_zero_dur))
         {
             //std::cout << "go to zero complete !" << std::endl;
-            //printf("\33[2K\rMotor %d %s : Zero Point Found : %8.6f, homming length : %8.6f ! ", slv_number, ELMO_NAME[slv_number].c_str(), q_zero_elmo_[slv_number], abs(elmofz[slv_number].posStart - elmofz[slv_number].posEnd));
+            printf("Motor %d %s : Zero Point Found : %8.6f, homming length : %8.6f ! ", slv_number, ELMO_NAME[slv_number].c_str(), q_zero_elmo_[slv_number], abs(elmofz[slv_number].posStart - elmofz[slv_number].posEnd));
             //fflush(stdout);
 
             // printf("\33[2K\r");
