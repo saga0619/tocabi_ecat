@@ -72,11 +72,11 @@ enum
 
 enum
 {
-    ELMO_FAULT = 536,
-    ELMO_NOTFAULT = 592,
-    ELMO_READY_TO_SWITCH_ON = 561,
-    ELMO_SWITCHED_ON = 563,
-    ELMO_OPERATION_ENABLE = 567,
+    ELMO_FAULT = 0,
+    ELMO_NOTFAULT = 2,
+    ELMO_READY_TO_SWITCH_ON = 3,
+    ELMO_SWITCHED_ON = 4,
+    ELMO_OPERATION_ENABLE = 1,
 };
 
 namespace ElmoHommingStatus
@@ -229,6 +229,9 @@ bool zp_load_ok = true;
 
 bool wait_kill_switch = true;
 bool wait_time_over = false;
+bool check_commutation = true;
+bool check_commutation_first = true;
+bool query_check_state = false;
 
 int wait_cnt = 0;
 
@@ -247,6 +250,9 @@ atomic<bool> de_ecat_lost_before{false};
 atomic<bool> de_ecat_recovered{false};
 atomic<bool> de_initialize{false};
 atomic<bool> de_commutation_done{false};
+atomic<bool> de_zp_sequence{false};
+atomic<bool> de_zp_upper_switch{false};
+atomic<bool> de_zp_lower_switch{false};
 atomic<int> de_debug_level{0};
 
 array<atomic<double>, ELMO_DOF> q_elmo_;        //sendstate
@@ -257,7 +263,6 @@ array<atomic<int>, ELMO_DOF> joint_state_elmo_; //sendstate
 array<atomic<double>, ELMO_DOF> torque_desired_elmo_; //getcommand
 
 array<atomic<double>, ELMO_DOF> q_ext_elmo_;
-array<atomic<double>, ELMO_DOF> q_ext_mod_elmo_;
 array<atomic<double>, ELMO_DOF> q_desired_elmo_;
 
 //double
@@ -272,6 +277,8 @@ void ethercatCheck();
 double elmoJointMove(double init, double angle, double start_time, double traj_time);
 bool controlWordGenerate(const uint16_t statusWord, uint16_t &controlWord);
 
+void elmoInit();
+
 void checkJointSafety();
 void checkJointStatus();
 void sendJointStatus();
@@ -279,6 +286,13 @@ void getJointCommand();
 
 bool saveCommutationLog();
 bool loadCommutationLog();
+
+//bool commutation_time_loaded = false;
+
+
+
+
+chrono::system_clock::time_point commutation_save_time_;
 
 bool saveZeroPoint();
 bool loadZeroPoint();
