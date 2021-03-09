@@ -10,6 +10,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <fstream>
+#include <sys/ipc.h>  
+#include <sys/shm.h>  
 
 #include "ethercat.h"
 #include "ecat_settings.h"
@@ -265,8 +267,13 @@ array<atomic<double>, ELMO_DOF> torque_desired_elmo_; //getcommand
 array<atomic<double>, ELMO_DOF> q_ext_elmo_;
 array<atomic<double>, ELMO_DOF> q_desired_elmo_;
 
-//double
-//double torqueDemandElmo[ELMO_DOF];
+key_t sendJointKey = 2021;
+key_t sendJointDotKey = 2022;
+key_t sendJointCurrentKey = 2023;
+key_t sendJointStatusKey = 2024;
+key_t getJointDesiredTorqueKey = 2025;
+
+double q_zero_point[ELMO_DOF];
 
 double q_zero_elmo_[ELMO_DOF];
 double q_zero_mod_elmo_[ELMO_DOF];
@@ -281,8 +288,8 @@ void elmoInit();
 
 void checkJointSafety();
 void checkJointStatus();
-void sendJointStatus();
-void getJointCommand();
+void sendJointStatus(array<atomic<double>, ELMO_DOF> q_elmo, array<atomic<double>, ELMO_DOF> q_dot_elmo, array<atomic<int>, ELMO_DOF> joint_state_elmo, array<atomic<double>, ELMO_DOF> torque_elmo);
+void getJointCommand(array<atomic<double>, ELMO_DOF> &torque_desired);
 
 bool saveCommutationLog();
 bool loadCommutationLog();

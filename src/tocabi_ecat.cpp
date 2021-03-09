@@ -977,12 +977,76 @@ void checkJointStatus()
 {
 }
 
-void sendJointStatus()
+void sendJointStatus(array<atomic<double>, ELMO_DOF> q_elmo, array<atomic<double>, ELMO_DOF> q_dot_elmo, array<atomic<int>, ELMO_DOF> joint_state_elmo, array<atomic<double>, ELMO_DOF> torque_elmo)
 {
+    int sendJointPos, sendJointDot, sendJointCurrent, sendJointStatus;
+    double *jointPos, *jointDot, *jointCurrent;
+    int *jointStatus;
+
+    sendJointPos = shmget(sendJointKey, sizeof(q_elmo_), 0666|IPC_CREAT);
+    sendJointDot = shmget(sendJointDotKey, sizeof(q_dot_elmo_), 0666|IPC_CREAT);
+    sendJointCurrent = shmget(sendJointCurrentKey, sizeof(torque_elmo_), 0666|IPC_CREAT);
+    sendJointStatus = shmget(sendJointStatusKey, sizeof(joint_state_elmo), 0666|IPC_CREAT);
+
+    if(sendJointPos == -1)
+    {
+        printf("SendJointPos shmget send failed");
+    }
+
+    if(sendJointDot == -1)
+    {
+        printf("SendJointDot shmget send failed");
+    }
+
+    if(sendJointCurrent == -1)
+    {
+        printf("SendJointCurrent shmget send failed");
+    }
+
+    if(sendJointStatus == -1)
+    {
+        printf("sendJointStatus shmget send failed");
+    }
+    
+    jointPos = (double*)shmat(sendJointPos, NULL, 0);
+    jointDot = (double*)shmat(sendJointDot, NULL, 0);
+    jointCurrent = (double*)shmat(sendJointCurrent, NULL, 0);
+    jointStatus = (int*)shmat(sendJointStatus, NULL, 0);
+
+    for(int i = 0; i < ELMO_DOF; i++)
+    {
+        jointPos[i] = q_elmo[i];
+        jointDot[i] = q_dot_elmo[i];
+        jointCurrent[i] = torque_elmo[i];
+        jointStatus[i] = joint_state_elmo[i];
+    }
+
+    shmdt(jointPos);
+    shmdt(jointDot);
+    shmdt(jointCurrent);
+    shmdt(jointStatus);
 }
 
-void getJointCommand()
+void getJointCommand(array<atomic<double>, ELMO_DOF> &torque_desired)
 {
+    int getJointTorque;
+    double *jointTorque;
+
+    getJointTorque = shmget(getJointDesiredTorqueKey, sizeof(torque_desired), 0666|IPC_CREAT);
+
+    if(getJointTorque == -1)
+    {
+        printf("GetJointTorque shmget send failed");
+    }
+
+    jointTorque = (double*)shmat(getJointTorque, NULL, 0);
+
+    for(int i = 0; i < ELMO_DOF; i++)
+    {
+        torque_desired[i] = jointTorque[i];
+    }
+
+    shmdt(jointTorque);
 }
 
 bool saveCommutationLog()
