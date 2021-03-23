@@ -10,11 +10,15 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <fstream>
-#include <sys/ipc.h>  
-#include <sys/shm.h>  
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <cstring>
+#include <cmath>
+#include <sys/stat.h>
 
 #include "ethercat.h"
 #include "ecat_settings.h"
+#include "shm_msgs.h"
 
 using namespace std;
 
@@ -85,8 +89,8 @@ namespace ElmoHommingStatus
 {
     enum FZResult
     {
-        SUCCESS = 11,
-        FAILURE = 22
+        SUCCESS = 1,
+        FAILURE = 0
     };
 }; // namespace ElmoHommingStatus
 
@@ -113,6 +117,7 @@ struct ElmoHomming
     int findZeroSequence = 0;
     double initTime;
     double initPos;
+    double desPos;
     double posStart;
     double posEnd;
     double req_length = 0.2;
@@ -179,6 +184,13 @@ double control_time_real_;
 bool hommingElmo[ELMO_DOF];
 bool hommingElmo_before[ELMO_DOF];
 
+enum SAFETY_PROTOCOL
+{
+    NORMAL,
+    LOCKED_BY_VEL,
+    LOCKED_BY_JOL,
+    DISABLED,
+};
 int ElmoSafteyMode[ELMO_DOF];
 
 EtherCAT_Elmo::ElmoGoldDevice::elmo_gold_rx *rxPDO[ELMO_DOF];
@@ -234,6 +246,7 @@ bool wait_time_over = false;
 bool check_commutation = true;
 bool check_commutation_first = true;
 bool query_check_state = false;
+bool zp_lower_calc = true;
 
 int wait_cnt = 0;
 
@@ -257,28 +270,28 @@ atomic<bool> de_zp_upper_switch{false};
 atomic<bool> de_zp_lower_switch{false};
 atomic<int> de_debug_level{0};
 
-array<atomic<double>, ELMO_DOF> q_elmo_;        //sendstate
-array<atomic<double>, ELMO_DOF> q_dot_elmo_;    //sendstate
-array<atomic<double>, ELMO_DOF> torque_elmo_;   //sendstate
-array<atomic<int>, ELMO_DOF> joint_state_elmo_; //sendstate
 
-array<atomic<double>, ELMO_DOF> torque_desired_elmo_; //getcommand
 
-array<atomic<double>, ELMO_DOF> q_ext_elmo_;
-array<atomic<double>, ELMO_DOF> q_desired_elmo_;
 
-key_t sendJointKey = 2021;
-key_t sendJointDotKey = 2022;
-key_t sendJointCurrentKey = 2023;
-key_t sendJointStatusKey = 2024;
-key_t getJointDesiredTorqueKey = 2025;
+int joint_state_elmo_[ELMO_DOF]; //sendstate
+
+
+float q_elmo_[ELMO_DOF];      //sendstate
+float q_dot_elmo_[ELMO_DOF];  //sendstate
+float torque_elmo_[ELMO_DOF]; //sendstate
+float q_ext_elmo_[ELMO_DOF];
+
+int command_mode_[ELMO_DOF];
+float torque_desired_elmo_[ELMO_DOF]; //get torque command
+float q_desired_elmo_[ELMO_DOF];      //get joint command
 
 double q_zero_point[ELMO_DOF];
 
 double q_zero_elmo_[ELMO_DOF];
 double q_zero_mod_elmo_[ELMO_DOF];
-void ethercatThread1();
-void ethercatThread2();
+
+void *ethercatThread1(void *data);
+void *ethercatThread2(void *data);
 void ethercatCheck();
 
 double elmoJointMove(double init, double angle, double start_time, double traj_time);
@@ -288,16 +301,16 @@ void elmoInit();
 
 void checkJointSafety();
 void checkJointStatus();
-void sendJointStatus(array<atomic<double>, ELMO_DOF> q_elmo, array<atomic<double>, ELMO_DOF> q_dot_elmo, array<atomic<int>, ELMO_DOF> joint_state_elmo, array<atomic<double>, ELMO_DOF> torque_elmo);
-void getJointCommand(array<atomic<double>, ELMO_DOF> &torque_desired);
+
+void initSharedMemory();
+void sendJointStatus();
+void getJointCommand();
+void deleteSharedMemory();
 
 bool saveCommutationLog();
 bool loadCommutationLog();
 
 //bool commutation_time_loaded = false;
-
-
-
 
 chrono::system_clock::time_point commutation_save_time_;
 

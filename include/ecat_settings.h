@@ -3,6 +3,8 @@
 #define CNT_TO_RAD_46 (3.141592 * 2 / (8192 * 100)) //819200
 #define CNT_TO_RAD_80 (3.141592 * 2 / (8000 * 100)) //819200
 
+#define DEG2RAD (3.141592f/180.0f)
+
 #define EXT_CNT_TO_RAD_46 (3.141592 * 2 / 8192) //819200
 #define EXT_CNT_TO_RAD_80 (3.141592 * 2 / 8192) //819200
 
@@ -21,6 +23,10 @@
 #define UPPERBODY_DOF 21
 
 #define CYCLETIME 500
+
+#define PERIOD_NS 500000
+#define SEC_IN_NSEC 1000000000
+
 
 enum
 {
@@ -142,9 +148,14 @@ const int q_ext_mod_elmo_[ELMO_DOF] =
         0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0, 0, 0, 0, 0,
         0, 0, 0, 0,
-        5370, 3942, 5148, 3234, 7499, 4288,
+        5370, 3942, 5148 -6 , 3234, 7499-5, 4288,
         0,
-        3799, 2522, 735, 8132, 2127, 7155};
+        3799, 2522, 735, 8132+37, 2127+0, 7155+0};
+
+        //right -> left
+        //right hippitch front -> modval +
+        //left knee pitch front -> modval -
+        //right ankle pitch up -> modval 
 
 const double joint_velocity_limit[ELMO_DOF] =
     {20.0, 20.0, 20.0, 20.0, 20.0, 20.0,
