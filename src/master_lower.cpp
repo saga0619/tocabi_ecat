@@ -15,6 +15,7 @@ int main(int argc, char **argv)
     init_args.lock_core = 6;
     init_args.ecat_device = 2;
     init_args.is_main = false;
+    init_args.verbose = false;
     strcpy(init_args.commutation_cache_file, "/home/dyros/.tocabi_bootlog/commutationlog_lower");
     strcpy(init_args.zeropoint_cache_file, "/home/dyros/.tocabi_bootlog/zeropointlog_lower");
     int max_jnum = 33;
@@ -27,12 +28,13 @@ int main(int argc, char **argv)
     }
     init_args.q_start_ = max_jnum;
 
+
     struct sched_param param;
     pthread_attr_t attr, attr2;
     pthread_t thread1, thread2;
     int ret;
 
-    printf("[ECAT - INFO] start main threads\n");
+    // printf("[ECAT - INFO] start main threadsm\n");
     /* Initialize pthread attributes (default values) */
     ret = pthread_attr_init(&attr);
     if (ret)
@@ -82,7 +84,7 @@ int main(int argc, char **argv)
         return ret;
     }
 
-    printf("[ECAT - INFO] start init process\n");
+    // printf("[ECAT - INFO] start init process\n");
     bool init_result = initTocabiSystem(init_args);
     if (!init_result)
     {
@@ -90,7 +92,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    printf("[ECAT - INFO] init process has been done\n");
+    // printf("[ECAT - INFO] init process has been done\n");
 
     // /* Create a pthread with specified attributes */
     ret = pthread_create(&thread1, &attr, ethercatThread1, &init_args);

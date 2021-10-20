@@ -15,6 +15,8 @@ int main(int argc, char **argv)
     init_args.lock_core = 7;
     init_args.ecat_device = 1;
     init_args.is_main = true;
+    
+    init_args.verbose = false;
     strcpy(init_args.commutation_cache_file, "/home/dyros/.tocabi_bootlog/commutationlog_upper");
     strcpy(init_args.zeropoint_cache_file, "/home/dyros/.tocabi_bootlog/zeropointlog_upper");
 
@@ -33,7 +35,7 @@ int main(int argc, char **argv)
     pthread_t thread1, thread2;
     int ret;
 
-    printf("[ECAT - INFO] start main threads\n");
+    // printf("[ECAT - INFO] start main threads\n");
     /* Initialize pthread attributes (default values) */
     ret = pthread_attr_init(&attr);
     if (ret)
@@ -83,7 +85,7 @@ int main(int argc, char **argv)
         return ret;
     }
 
-    printf("[ECAT - INFO] start init process\n");
+    // printf("[ECAT - INFO] start init process\n");
     bool init_result = initTocabiSystem(init_args);
     if (!init_result)
     {

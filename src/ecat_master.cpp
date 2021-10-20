@@ -17,7 +17,9 @@ volatile int wkc;
 boolean inOP;
 uint8 currentgroup = 0;
 
-int START_N = 0;
+int START_N = -1;
+int Q_START = -1;       //g_init_args.q_start_;
+int PART_ELMO_DOF = -1; //g_init_args.ecat_slave_num;
 
 int stateElmo[ELMO_DOF];
 int stateElmo_before[ELMO_DOF];
@@ -380,6 +382,10 @@ void elmoInit()
 bool initTocabiSystem(const TocabiInitArgs &args)
 {
 
+    Q_START = args.q_start_;
+    PART_ELMO_DOF = args.ecat_slave_num;
+    START_N = args.ecat_slave_start_num;
+
     init_shm(shm_msg_key, shm_id_, &shm_msgs_);
 
     shm_msgs_->shutdown = false;
@@ -428,6 +434,17 @@ bool initTocabiSystem(const TocabiInitArgs &args)
         }
         ec_slave[slave].CoEdetails ^= ECT_COEDET_SDOCA;
     }
+    //     ec_readstate();
+    // for (int cnt = 1; cnt <= ec_slavecount; cnt++)
+    // {
+    //     /* BEGIN USER CODE */
+
+    //     printf("Slave:%d Name:%s Output size:%3dbits Input size:%3dbits State:%2d delay:%d.%d\n",
+    //            cnt, ec_slave[cnt].name, ec_slave[cnt].Obits, ec_slave[cnt].Ibits,
+    //            ec_slave[cnt].state, (int)ec_slave[cnt].pdelay, ec_slave[cnt].hasdc);
+
+    //     /* END USER CODE */
+    // }
 
     for (int slave = 1; slave <= ec_slavecount; slave++)
     {
@@ -453,18 +470,112 @@ bool initTocabiSystem(const TocabiInitArgs &args)
         ec_SDOwrite(slave, 0x1c13, 0, TRUE, os, map_1c13, EC_TIMEOUTRXM);
     }
     /** if CA disable => automapping works */
-    printf("ELMO %d : config init\n", g_init_args.ecat_device);
+    printf("ELMO %d : EC CONFIG MAP\n", args.ecat_device);
     ec_config_map(&IOmap);
     // ec_config_overlap_map(IOmap);
 
     //ecdc
 #ifdef ECAT_DC
+    printf("ELMO %d : EC CONFIG DC\n", args.ecat_device);
     ec_configdc();
+
+    for (int i = 0; i < ec_slavecount; i++)
+        ec_dcsync0(i + 1, TRUE, (uint32)args.period_ns, 0);
+
 #endif
-    printf("ELMO : EC WAITING STATE TO SAFE_OP\n");
+    while (EcatError)
+        printf("%s", ec_elist2string());
+    printf("ELMO %d : EC WAITING STATE TO SAFE_OP\n", args.ecat_device);
     ec_statecheck(0, EC_STATE_SAFE_OP, EC_TIMEOUTSTATE * 4);
     ec_readstate();
+    // for (int cnt = 1; cnt <= ec_slavecount; cnt++)
+    // {
+    //     /* BEGIN USER CODE */
 
+    //     printf("Slave:%d Name:%s Output size:%3dbits Input size:%3dbits State:%2d delay:%d.%d\n",
+    //            cnt, ec_slave[cnt].name, ec_slave[cnt].Obits, ec_slave[cnt].Ibits,
+    //            ec_slave[cnt].state, (int)ec_slave[cnt].pdelay, ec_slave[cnt].hasdc);
+
+    //     /* END USER CODE */
+    // }
+    if (args.ecat_device == 0)
+    {
+        uint16 wc, slaveh;
+        uint32 t;
+        uint64 t1;
+        //read the copied system time of local clock
+        t1 = 0;
+
+        for (int i = 1; i <= ec_slavecount; i++)
+        {
+            printf("slave %d delay : %d ns \n", i, ec_slave[i].pdelay);
+        }
+
+        // for (int i = 1; i <= ec_slavecount; i++)
+        // {
+        //     t1 = 0;
+        //     slaveh = ec_slave[i].configadr;
+        //     wc = ec_FPRD(slaveh, ECT_REG_DCSYSTIME, sizeof(t1), &t1, EC_TIMEOUTRET);
+        //     printf("System time of slave %d : %d\n", i, t1);
+        //     // cerr << "System time of slave " << i << " : " << dec << t1 << endl;
+        // }
+
+        // //read the propagation delay of slaves
+        // t = 0;
+        // for (int i = 1; i <= ec_slavecount; i++)
+        // {
+        //     t = 0;
+        //     slaveh = ec_slave[i].configadr;
+        //     wc = ec_FPRD(slaveh, ECT_REG_DCSYSDELAY, sizeof(t), &t, EC_TIMEOUTRET);
+        //     printf("Delay time of slave %d : %d\n", i, t);
+        //     // cerr << "Delay time of slave " << i << " : " << dec << t << endl;
+        // }
+
+        // //read the offset time from reference time to slaves
+        // t1 = 0;
+        // for (int i = 1; i <= ec_slavecount; i++)
+        // {
+        //     t1 = 0;
+        //     slaveh = ec_slave[i].configadr;
+        //     wc = ec_FPRD(slaveh, ECT_REG_DCSYSOFFSET, sizeof(t1), &t1, EC_TIMEOUTRET);
+        //     printf("Offset time of slave %d : %d\n", i, t1);
+        //     // cerr << "Offset time of slave " << i << " : " << dec << t1 << endl;
+        // }
+
+        // //read the local clock of slaves
+        // t1 = 0;
+        // for (int i = 1; i <= ec_slavecount; i++)
+        // {
+        //     t1 = 0;
+        //     slaveh = ec_slave[i].configadr;
+        //     wc = ec_FPRD(slaveh, ECT_REG_DCSOF, sizeof(t1), &t1, EC_TIMEOUTRET);
+        //     printf("Local time of slave %d : %d\n", i, t1);
+        //     // cerr << "Local time of slave " << i << " : " << dec << t1 << endl;
+        // }
+
+        // //read the system time difference of slaves
+        // t = 0;
+        // for (int i = 1; i <= ec_slavecount; i++)
+        // {
+        //     t = 0;
+        //     slaveh = ec_slave[i].configadr;
+        //     wc = ec_FPRD(slaveh, ECT_REG_DCSYSDIFF, sizeof(t), &t, EC_TIMEOUTRET);
+        //     printf("System time difference of slave %d : %d\n", i, t);
+        //     // cerr << "System time difference of slave " << i << " : " << dec << t << endl;
+        // }
+
+        // //read the sync0 cycle start time
+        // t1 = 0;
+        // for (int i = 1; i <= ec_slavecount; i++)
+        // {
+        //     t = 0;
+        //     slaveh = ec_slave[i].configadr;
+        //     wc = ec_FPRD(slaveh, ECT_REG_DCSTART0, sizeof(t1), &t1, EC_TIMEOUTRET);
+        //     printf("next sync0 start time of slave %d : %d\n", i, t1);
+
+        //     // cerr << "next sync0 start time of slave " << i << " : " << dec << t1 << endl;
+        // }
+    }
     // void *digout;
 
     // for (int cnt = 1; cnt <= ec_slavecount; cnt++)
@@ -543,7 +654,7 @@ bool initTocabiSystem(const TocabiInitArgs &args)
     clock_gettime(CLOCK_MONOTONIC, &ts);
 #ifdef ECAT_DC
     for (int i = 0; i < ec_slavecount; i++)
-        ec_dcsync0(i + 1, TRUE, PRNS, 0);
+        ec_dcsync0(i + 1, TRUE, (uint32)args.period_ns, 2000);
     toff = 0;
 
     ec_send_processdata();
@@ -609,14 +720,11 @@ void *ethercatThread1(void *data)
     bool reachedInitial[ELMO_DOF] = {false};
     // force_control_mode = true;
     de_debug_level++;
-    init_args->verbose = true;
     status_log = true;
 
     struct timespec ts_start;
     clock_gettime(CLOCK_MONOTONIC, &ts_start); //ADDED
     clock_gettime(CLOCK_MONOTONIC, &ts);       //ADDED
-    int start_joint = init_args->ecat_slave_start_num;
-    int START_N = init_args->ecat_slave_start_num;
 
     struct timespec ts_tt;
     char buff[100];
@@ -625,7 +733,7 @@ void *ethercatThread1(void *data)
     ts_tt.tv_sec += 60 * 60 * 9;
     strftime(buff, sizeof buff, "%D %T", gmtime(&ts_tt.tv_sec));
 
-    printf("ELMO %d : entering initialize START_N %d jointNUM %d | %s\n", init_args->ecat_device, init_args->ecat_slave_start_num, init_args->ecat_slave_num, buff);
+    printf("ELMO %d : entering initialize START_N %d jointNUM %d QSTART %d | %s\n", init_args->ecat_device, START_N, init_args->ecat_slave_num, init_args->q_start_, buff);
 
     if (shm_msgs_->shutdown)
         printf("Shutdown Command Before Start\n");
@@ -648,7 +756,7 @@ void *ethercatThread1(void *data)
         //std::this_thread::sleep_until(st_start_time + cycle_count * cycletime);
         cycle_count++;
 
-        // printf("ELMO %d : entering initialize START_N %d jointNUM %d\n", init_args->ecat_device, init_args->ecat_slave_start_num, init_args->ecat_slave_num);
+        // printf("ELMO %d : entering initialize START_N %d jointNUM %d\n", init_args->ecat_device, START_N, init_args->ecat_slave_num);
 
         // if ((cycle_count % 2000) == 0)
         //     printf("ELMO %d running \n", g_init_args.ecat_device);
@@ -803,8 +911,8 @@ void *ethercatThread1(void *data)
 
                 if (loadZeroPoint())
                 {
-                    if (init_args->verbose)
-                        printf("ELMO %d : Initialize Complete \n", init_args->ecat_device);
+                    // if (init_args->verbose)
+                    //     printf("ELMO %d : Initialize Complete \n", init_args->ecat_device);
                     break;
                 }
                 else
@@ -1180,6 +1288,8 @@ void *ethercatThread1(void *data)
     {
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
 
+        control_time_real_ = cycle_count * init_args->period_ns / 1000000000.0;
+
         clock_gettime(CLOCK_MONOTONIC, &ts1);
 
         lat_ns = (ts1.tv_sec - ts.tv_sec) * SEC_IN_NSEC + ts1.tv_nsec - ts.tv_nsec;
@@ -1231,8 +1341,8 @@ void *ethercatThread1(void *data)
             if (stword_changed)
             {
                 timespec_get(&ts_tt, TIME_UTC + 9);
-                strftime(buff, sizeof buff, "%D %T", gmtime(&ts_tt.tv_sec));
-                printf("ELMO %d : PDS EVENT %s.%09ld UTC\n", g_init_args.ecat_device, buff, ts_tt.tv_nsec);
+                strftime(buff, sizeof buff, "%T", gmtime(&ts_tt.tv_sec));
+                printf("ELMO %d | CNT %ld : PDS EVENT %s.%09ld UTC\n", g_init_args.ecat_device, cycle_count, buff, ts_tt.tv_nsec);
             }
 
             // if (status_changed)
@@ -1259,6 +1369,7 @@ void *ethercatThread1(void *data)
                 if (reachedInitial[slave - 1])
                 {
                     q_elmo_[START_N + slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1] - q_zero_elmo_[START_N + slave - 1];
+
                     hommingElmo[START_N + slave - 1] =
                         (((uint32_t)ec_slave[slave].inputs[6]) & ((uint32_t)1));
                     q_dot_elmo_[START_N + slave - 1] =
@@ -1293,13 +1404,14 @@ void *ethercatThread1(void *data)
             q_ext_[JointMap2[START_N + i]] = q_ext_elmo_[START_N + i];
             //joint_state_[JointMap2[START_N + i]] = joint_state_elmo_[START_N + i];
 
-            ElmoMode[i] = EM_DEFAULT;
+            ElmoMode[START_N + i] = EM_DEFAULT;
         }
 
         sendJointStatus();
         if (g_init_args.ecat_device != 0)
             getJointCommand();
 
+        // printf("%f %f %f %f %f %f\n",q_elmo_[START_N],q_elmo_[START_N+1],q_elmo_[START_N+2],q_elmo_[START_N+3],q_elmo_[START_N+4],q_elmo_[START_N+5]);
         //memcpy(q_desired_elmo_, &shm_msgs_->positionCommand, sizeof(float) * MODEL_DOF);
 
         //ECAT JOINT COMMAND
@@ -1340,20 +1452,20 @@ void *ethercatThread1(void *data)
                 {
                     torque_desired_elmo_[START_N + i] = (q_desired_elmo_[START_N + i] - q_elmo_[START_N + i]) * pos_p_gain[JointMap2[START_N + i]] - q_dot_elmo_[START_N + i] * pos_d_gain[JointMap2[START_N + i]];
                     maxTorque = 100;
-                    ElmoMode[i] = EM_TORQUE;
+                    ElmoMode[START_N + i] = EM_TORQUE;
                 }
             }
             // txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousTorquemode;
             // txPDO[i]->targetTorque = (int)(torque_desired_elmo_[START_N + i] * NM2CNT[START_N + i] * elmo_axis_direction[START_N + i]);
             // txPDO[i]->maxTorque = (uint16)maxTorque;
 
-            if (ElmoMode[i] == EM_POSITION)
+            if (ElmoMode[START_N + i] == EM_POSITION)
             {
                 txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousPositionmode;
                 txPDO[i]->targetPosition = (int)(elmo_axis_direction[START_N + i] * RAD2CNT[START_N + i] * q_desired_elmo_[START_N + i]);
                 txPDO[i]->maxTorque = (uint16)maxTorque; // originaly 1000
             }
-            else if (ElmoMode[i] == EM_TORQUE)
+            else if (ElmoMode[START_N + i] == EM_TORQUE)
             {
 
                 txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousTorquemode;
@@ -1440,35 +1552,36 @@ void *ethercatThread1(void *data)
         // shm_msgs_->send_max2 = smax;
         // shm_msgs_->send_min2 = smin;
         // shm_msgs_->send_dev2 = sdev;
-        if (cycle_count % 2000 == 0)
-        {
-            printf("ELMO %d : %ld Lat avg : %5.2f max : %5.2f amax : %5.2f COM avg : %5.2f max : %5.2f amax : %5.2f ovf : %d\n ", g_init_args.ecat_device, cycle_count / 2000, lat_avg / 1000.0, lmax / 1000.0, lamax / 1000.0, send_avg / 1000.0, smax / 1000.0, samax / 1000.0, s_ovf);
-            //printf("  rcv max : %7.3f ovf : %d mid max : %7.3f ovf : %d snd max : %7.3f ovf : %d statwrd chg cnt : %d\n", low_rcv_max / 1000.0, low_rcv_ovf, low_mid_max / 1000.0, low_mid_ovf, low_snd_max / 1000.0, low_snd_ovf, status_changed_count);
-            c_count = 0;
-            total1 = 0;
-            total2 = 0;
-            lmax = 0;
-            smax = 0;
-        }
+
         if (g_init_args.ecat_device == 0)
         {
+            if (cycle_count % 2000 == 0)
+            {
+                printf("ELMO %d : %ld Lat avg : %5.2f max : %5.2f amax : %5.2f COM avg : %5.2f max : %5.2f amax : %5.2f ovf : %d\n ", g_init_args.ecat_device, cycle_count / 2000, lat_avg / 1000.0, lmax / 1000.0, lamax / 1000.0, send_avg / 1000.0, smax / 1000.0, samax / 1000.0, s_ovf);
+                //printf("  rcv max : %7.3f ovf : %d mid max : %7.3f ovf : %d snd max : %7.3f ovf : %d statwrd chg cnt : %d\n", low_rcv_max / 1000.0, low_rcv_ovf, low_mid_max / 1000.0, low_mid_ovf, low_snd_max / 1000.0, low_snd_ovf, status_changed_count);
+                c_count = 0;
+                total1 = 0;
+                total2 = 0;
+                lmax = 0;
+                smax = 0;
+            }
         }
         else if (g_init_args.ecat_device == 1)
         {
-            shm_msgs_->lat_avg = lavg;
-            shm_msgs_->lat_max = lmax;
+            shm_msgs_->lat_avg = lat_avg;
+            shm_msgs_->lat_max = lamax;
             shm_msgs_->lat_ovf = l_ovf;
-            shm_msgs_->send_avg = savg;
-            shm_msgs_->send_max = smax;
+            shm_msgs_->send_avg = send_avg;
+            shm_msgs_->send_max = samax;
             shm_msgs_->send_ovf = s_ovf;
         }
         else if (g_init_args.ecat_device == 2)
         {
-            shm_msgs_->lat_avg2 = lavg;
-            shm_msgs_->lat_max2 = lmax;
+            shm_msgs_->lat_avg2 = lat_avg;
+            shm_msgs_->lat_max2 = lamax;
             shm_msgs_->lat_ovf2 = l_ovf;
-            shm_msgs_->send_avg2 = savg;
-            shm_msgs_->send_max2 = smax;
+            shm_msgs_->send_avg2 = send_avg;
+            shm_msgs_->send_max2 = samax;
             shm_msgs_->send_ovf2 = s_ovf;
         }
 
@@ -1554,7 +1667,7 @@ void *ethercatThread2(void *data)
                     printf("%f\n", control_time_real_);
                     for (int i = 0; i < ec_slavecount; i++)
                     { //std::cout << i << ELMO_NAME[i] <<
-                        printf("%4d   %20s  %12f  ext : %12f\n", i, ELMO_NAME[START_N + i], (double)q_elmo_[i], (double)q_ext_elmo_[i]);
+                        printf("%4d   %20s  %12f  ext : %12f\n", i, ELMO_NAME[START_N + i], q_elmo_[START_N + i], q_ext_elmo_[START_N + i]);
                     }
                 }
                 else if ((ch % 256 == 't'))
@@ -1583,11 +1696,11 @@ void *ethercatThread2(void *data)
 
                     if (pos_hold_switch)
                     {
-                        printf("ELMO : Lock current position\n");
+                        printf("ELMO : Lock current position %d \n", START_N);
 
                         for (int i = 0; i < ec_slavecount; i++)
                         {
-                            q_desired_elmo_[g_init_args.ecat_slave_start_num + i] = q_elmo_[g_init_args.ecat_slave_start_num + i];
+                            q_desired_elmo_[START_N + i] = q_elmo_[START_N + i];
                         }
                     }
                     else
@@ -1603,7 +1716,7 @@ void *ethercatThread2(void *data)
                     for (int i = 0; i < ec_slavecount; i++)
                     {
                         //q_desired_elmo_[i] = q_elmo_[i];
-                        ElmoMode[i] = EM_DEFAULT;
+                        ElmoMode[START_N + i] = EM_DEFAULT;
                     }
                 }
                 else if ((ch % 256 == 'w'))
@@ -1696,42 +1809,42 @@ void checkJointSafety()
     for (int i = 0; i < g_init_args.ecat_slave_num; i++)
     {
 
-        if (ElmoSafteyMode[g_init_args.ecat_slave_start_num + i] == 0)
+        if (ElmoSafteyMode[START_N + i] == 0)
         {
-            state_safety_[JointMap2[g_init_args.ecat_slave_start_num + i]] = SSTATE::SAFETY_OK;
+            state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_OK;
 
-            if ((joint_lower_limit[g_init_args.ecat_slave_start_num + i] > q_elmo_[g_init_args.ecat_slave_start_num + i]))
+            if ((joint_lower_limit[START_N + i] > q_elmo_[START_N + i]))
             {
-                printf("%sELMO %d %s : SAFETY LOCK - JOINT LIMIT : %f LIMIT : %f %s\n", cred, g_init_args.ecat_device, ELMO_NAME[g_init_args.ecat_slave_start_num + i], q_elmo_[g_init_args.ecat_slave_start_num + i], joint_lower_limit[g_init_args.ecat_slave_start_num + i], creset);
-                state_safety_[JointMap2[g_init_args.ecat_slave_start_num + i]] = SSTATE::SAFETY_JOINT_LIMIT;
-                ElmoSafteyMode[g_init_args.ecat_slave_start_num + i] = 1;
+                printf("%sELMO %d %s : SAFETY LOCK - JOINT LIMIT : %f LIMIT : %f %s\n", cred, g_init_args.ecat_device, ELMO_NAME[START_N + i], q_elmo_[START_N + i], joint_lower_limit[START_N + i], creset);
+                state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_JOINT_LIMIT;
+                ElmoSafteyMode[START_N + i] = 1;
             }
-            else if ((joint_upper_limit[g_init_args.ecat_slave_start_num + i] < q_elmo_[g_init_args.ecat_slave_start_num + i]))
+            else if ((joint_upper_limit[START_N + i] < q_elmo_[START_N + i]))
             {
-                printf("%sELMO %d %s : SAFETY LOCK - JOINT LIMIT : %f LIMIT : %f %s\n", cred, g_init_args.ecat_device, ELMO_NAME[g_init_args.ecat_slave_start_num + i], q_elmo_[g_init_args.ecat_slave_start_num + i], joint_upper_limit[g_init_args.ecat_slave_start_num + i], creset);
+                printf("%sELMO %d %s : SAFETY LOCK - JOINT LIMIT : %f LIMIT : %f %s\n", cred, g_init_args.ecat_device, ELMO_NAME[START_N + i], q_elmo_[START_N + i], joint_upper_limit[START_N + i], creset);
 
-                state_safety_[JointMap2[g_init_args.ecat_slave_start_num + i]] = SSTATE::SAFETY_JOINT_LIMIT;
-                ElmoSafteyMode[g_init_args.ecat_slave_start_num + i] = 1;
+                state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_JOINT_LIMIT;
+                ElmoSafteyMode[START_N + i] = 1;
             }
 
-            if (joint_velocity_limit[g_init_args.ecat_slave_start_num + i] < abs(q_dot_elmo_[g_init_args.ecat_slave_start_num + i]))
+            if (joint_velocity_limit[START_N + i] < abs(q_dot_elmo_[START_N + i]))
             {
-                printf("%sELMO %d %s : SAFETY LOCK - VELOCITY LIMIT %s\n", cred, g_init_args.ecat_device, ELMO_NAME[g_init_args.ecat_slave_start_num + i], creset);
-                state_safety_[JointMap2[g_init_args.ecat_slave_start_num + i]] = SSTATE::SAFETY_VELOCITY_LIMIT;
-                ElmoSafteyMode[g_init_args.ecat_slave_start_num + i] = 1;
+                printf("%sELMO %d %s : SAFETY LOCK - VELOCITY LIMIT %s\n", cred, g_init_args.ecat_device, ELMO_NAME[START_N + i], creset);
+                state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_VELOCITY_LIMIT;
+                ElmoSafteyMode[START_N + i] = 1;
             }
         }
 
-        if (ElmoSafteyMode[g_init_args.ecat_slave_start_num + i] == 1)
+        if (ElmoSafteyMode[START_N + i] == 1)
         {
-            q_desired_elmo_[g_init_args.ecat_slave_start_num + i] = q_elmo_[g_init_args.ecat_slave_start_num + i];
-            ElmoMode[g_init_args.ecat_slave_start_num + i] = EM_POSITION;
-            ElmoSafteyMode[g_init_args.ecat_slave_start_num + i] = 2;
+            q_desired_elmo_[START_N + i] = q_elmo_[START_N + i];
+            ElmoMode[START_N + i] = EM_POSITION;
+            ElmoSafteyMode[START_N + i] = 2;
         }
 
-        if (ElmoSafteyMode[g_init_args.ecat_slave_start_num + i] == 2)
+        if (ElmoSafteyMode[START_N + i] == 2)
         {
-            ElmoMode[g_init_args.ecat_slave_start_num + i] = EM_POSITION;
+            ElmoMode[START_N + i] = EM_POSITION;
         }
     }
 }
@@ -1802,8 +1915,6 @@ void checkJointStatus()
 // }
 void sendJointStatus()
 {
-    int Q_START = g_init_args.q_start_;
-    int PART_ELMO_DOF = g_init_args.ecat_slave_num;
 
     shm_msgs_->statusWriting++;
 
@@ -1837,8 +1948,6 @@ void sendJointStatus()
 
 void getJointCommand()
 {
-    int Q_START = g_init_args.q_start_;
-    int PART_ELMO_DOF = g_init_args.ecat_slave_num;
     // while (shm_msgs_->commanding.load(std::memory_order_acquire))
     // {
     //     clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_us1, NULL);
@@ -1881,7 +1990,7 @@ void getJointCommand()
         // {
         torque_desired_elmo_[JointMap[Q_START + i]] = torque_desired_[Q_START + i];
 
-        ElmoMode[i] = EM_TORQUE;
+        ElmoMode[START_N + i] = EM_TORQUE;
         // }
         // else if (command_mode_[Q_START + i] == 2)
         // {
@@ -1927,7 +2036,7 @@ void getJointCommand()
                 {
                     if (errorCount != commandCount)
                     {
-                        printf("%s %ld ELMO 1 : commandCount Warn! SAFETY LOCK%s\n", cred.c_str(), control_time_us_, creset.c_str());
+                        printf("%s %f ELMO 1 : commandCount Warn! SAFETY LOCK%s\n", cred, control_time_real_, creset);
 
                         // std::cout << cred << control_time_us_ << "ELMO_LOW : commandCount Warn! SAFETY LOCK" << creset << std::'\n';
 
@@ -1992,13 +2101,13 @@ bool loadCommutationLog(struct timespec &commutation_time)
     struct timespec ts_now;
     clock_gettime(CLOCK_REALTIME, &ts_now);
 
-    fread(&commutation_time, sizeof(timespec), 1, fp);
+    int fr = fread(&commutation_time, sizeof(timespec), 1, fp);
 
     fclose(fp);
 
     float t_before = (float)(getTimeDiff(commutation_time, ts_now) / SEC_IN_NSEC);
 
-    printf("ELMO %d : Commutation done %f seconds before \n", g_init_args.ecat_device, t_before);
+    printf("ELMO %d : Commutation done %d seconds before \n", g_init_args.ecat_device, (int)t_before);
 
     return true;
 }
@@ -2036,10 +2145,10 @@ bool loadZeroPoint(bool force)
     clock_gettime(CLOCK_REALTIME, &ts_now_);
 
     struct timespec ts_zp_saved_;
-    fread(&ts_zp_saved_, sizeof(timespec), 1, fp);
+    int fr = fread(&ts_zp_saved_, sizeof(timespec), 1, fp);
 
     double getzp[ELMO_DOF];
-    fread(getzp, sizeof(double), ELMO_DOF, fp);
+    fr = fread(getzp, sizeof(double), ELMO_DOF, fp);
 
     fclose(fp);
 
@@ -2059,8 +2168,8 @@ bool loadZeroPoint(bool force)
 
     for (int i = 0; i < g_init_args.ecat_slave_num; i++)
     {
-        state_zp_[JointMap2[i]] = ZSTATE::ZP_SUCCESS;
-        q_zero_elmo_[i] = getzp[i];
+        state_zp_[JointMap2[START_N + i]] = ZSTATE::ZP_SUCCESS;
+        q_zero_elmo_[START_N + i] = getzp[START_N + i];
     }
 
     return true;

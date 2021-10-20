@@ -147,14 +147,14 @@ target_link_libraries(tocabi_ecat
 target_link_libraries(tocabi_ecat_lower
   -lsoem
   -lpthread
-  # ${XENO_CFLAGS}
-  # ${XENO_LDFLAGS}
+  ${XENO_CFLAGS}
+  ${XENO_LDFLAGS}
 )
 target_link_libraries(tocabi_ecat_upper
   -lsoem 
   -lpthread
-  # ${XENO_CFLAGS}
-  # ${XENO_LDFLAGS}
+  ${XENO_CFLAGS}
+  ${XENO_LDFLAGS}
 )
 
 
