@@ -378,26 +378,35 @@ void elmoInit()
 
     memset(ElmoSafteyMode, 0, sizeof(int) * ELMO_DOF);
 }
-
-bool initTocabiSystem(const TocabiInitArgs &args)
+bool initTocabiArgs(const TocabiInitArgs &args)
 {
-
     Q_START = args.q_start_;
     PART_ELMO_DOF = args.ecat_slave_num;
     START_N = args.ecat_slave_start_num;
 
     init_shm(shm_msg_key, shm_id_, &shm_msgs_);
 
-    shm_msgs_->shutdown = false;
+    // shm_msgs_->shutdown = false;
+    if (shm_msgs_->shutdown == true)
+    {
+
+        printf("ELMO %d : shm reset\n", args.ecat_device);
+    }
 
     g_init_args = args;
+}
+
+bool initTocabiSystem(const TocabiInitArgs &args)
+{
+
+    
     // const char *ifname1 = args.port1.c_str();
     char ifname2[100];
     strcpy(ifname2, args.port2);
     // char *ifname2 = args.port2;
 
     if (!ec_init_redundant(args.port1, ifname2))
-    // if (!ec_init(ifname))
+    // if (!ec_init(args.port1))
     {
         printf("ELMO %d : No socket connection on %s / %s \nExcecute as root\n", args.ecat_device, args.port1, args.port2);
         return false;
@@ -434,18 +443,7 @@ bool initTocabiSystem(const TocabiInitArgs &args)
         }
         ec_slave[slave].CoEdetails ^= ECT_COEDET_SDOCA;
     }
-    //     ec_readstate();
-    // for (int cnt = 1; cnt <= ec_slavecount; cnt++)
-    // {
-    //     /* BEGIN USER CODE */
-
-    //     printf("Slave:%d Name:%s Output size:%3dbits Input size:%3dbits State:%2d delay:%d.%d\n",
-    //            cnt, ec_slave[cnt].name, ec_slave[cnt].Obits, ec_slave[cnt].Ibits,
-    //            ec_slave[cnt].state, (int)ec_slave[cnt].pdelay, ec_slave[cnt].hasdc);
-
-    //     /* END USER CODE */
-    // }
-
+    
     for (int slave = 1; slave <= ec_slavecount; slave++)
     {
         //0x1605 :  Target Position             32bit
@@ -616,6 +614,7 @@ bool initTocabiSystem(const TocabiInitArgs &args)
     int wait_cnt = 40;
 
     int64 toff, gl_delta;
+    toff = 0;
     unsigned long long cur_dc32 = 0;
     unsigned long long pre_dc32 = 0;
     long long diff_dc32 = 0;
@@ -643,6 +642,11 @@ bool initTocabiSystem(const TocabiInitArgs &args)
             }
         }
         return false;
+    }
+    for (int slave = 1; slave <= ec_slavecount; slave++)
+    {
+        txPDO[slave - 1] = (EtherCAT_Elmo::ElmoGoldDevice::elmo_gold_tx *)(ec_slave[slave].outputs);
+        rxPDO[slave - 1] = (EtherCAT_Elmo::ElmoGoldDevice::elmo_gold_rx *)(ec_slave[slave].inputs);
     }
 
     inOP = TRUE;
@@ -677,11 +681,6 @@ bool initTocabiSystem(const TocabiInitArgs &args)
     // clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
 
     /* cyclic loop */
-    for (int slave = 1; slave <= ec_slavecount; slave++)
-    {
-        txPDO[slave - 1] = (EtherCAT_Elmo::ElmoGoldDevice::elmo_gold_tx *)(ec_slave[slave].outputs);
-        rxPDO[slave - 1] = (EtherCAT_Elmo::ElmoGoldDevice::elmo_gold_rx *)(ec_slave[slave].inputs);
-    }
 
     //Commutation Checking
     // st_start_time = std::chrono::steady_clock::now(); // TODO:timespec
@@ -760,7 +759,6 @@ void *ethercatThread1(void *data)
 
         // if ((cycle_count % 2000) == 0)
         //     printf("ELMO %d running \n", g_init_args.ecat_device);
-        // printf("ELMO %d running \n", g_init_args.ecat_device);
         ec_send_processdata();
         wkc = ec_receive_processdata(EC_PACKET_TIMEOUT);
 
@@ -770,8 +768,12 @@ void *ethercatThread1(void *data)
         // control_time_real_ = std::chrono::duration_cast<chrono::microseconds>(chrono::steady_clock::now() - st_start_time).count() / 1000000.0;
         // while (EcatError)
         //     printf("%f %s", control_time_real_, ec_elist2string());
+
+    
         for (int i = 0; i < ec_slavecount; i++)
         {
+            // printf("%d\t",rxPDO[i]->statusWord);
+
             elmost[i].state = getElmoState(rxPDO[i]->statusWord);
 
             if (elmost[i].state != elmost[i].state_before)
@@ -814,6 +816,7 @@ void *ethercatThread1(void *data)
             }
             elmost[i].state_before = elmost[i].state;
         }
+            // printf("\n");
 
         if (check_commutation)
         {
@@ -967,6 +970,7 @@ void *ethercatThread1(void *data)
                 }
             }
         }
+        
 
         for (int slave = 1; slave <= ec_slavecount; slave++)
         {
@@ -1451,7 +1455,7 @@ void *ethercatThread1(void *data)
                 if (pos_hold_switch)
                 {
                     torque_desired_elmo_[START_N + i] = (q_desired_elmo_[START_N + i] - q_elmo_[START_N + i]) * pos_p_gain[JointMap2[START_N + i]] - q_dot_elmo_[START_N + i] * pos_d_gain[JointMap2[START_N + i]];
-                    maxTorque = 100;
+                    maxTorque = 1000;
                     ElmoMode[START_N + i] = EM_TORQUE;
                 }
             }
@@ -1557,7 +1561,7 @@ void *ethercatThread1(void *data)
         {
             if (cycle_count % 2000 == 0)
             {
-                printf("ELMO %d : %ld Lat avg : %5.2f max : %5.2f amax : %5.2f COM avg : %5.2f max : %5.2f amax : %5.2f ovf : %d\n ", g_init_args.ecat_device, cycle_count / 2000, lat_avg / 1000.0, lmax / 1000.0, lamax / 1000.0, send_avg / 1000.0, smax / 1000.0, samax / 1000.0, s_ovf);
+                printf("%d : %ld L avg : %5.2f max : %5.2f amax : %5.2f C avg : %5.2f max : %5.2f amax : %5.2f ovf : %d\n ", g_init_args.ecat_device, cycle_count / 2000, lat_avg / 1000.0, lmax / 1000.0, lamax / 1000.0, send_avg / 1000.0, smax / 1000.0, samax / 1000.0, s_ovf);
                 //printf("  rcv max : %7.3f ovf : %d mid max : %7.3f ovf : %d snd max : %7.3f ovf : %d statwrd chg cnt : %d\n", low_rcv_max / 1000.0, low_rcv_ovf, low_mid_max / 1000.0, low_mid_ovf, low_snd_max / 1000.0, low_snd_ovf, status_changed_count);
                 c_count = 0;
                 total1 = 0;

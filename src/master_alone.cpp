@@ -62,6 +62,7 @@ int main(int argc, char *argv[])
 
 
     printf("[ECAT - INFO] start init process...\n");
+    initTocabiArgs(init_args);
     bool init_result = initTocabiSystem(init_args);
     if (!init_result)
     {

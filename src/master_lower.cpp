@@ -15,7 +15,7 @@ int main(int argc, char **argv)
     init_args.lock_core = 6;
     init_args.ecat_device = 2;
     init_args.is_main = false;
-    init_args.verbose = false;
+    init_args.verbose = true;
     strcpy(init_args.commutation_cache_file, "/home/dyros/.tocabi_bootlog/commutationlog_lower");
     strcpy(init_args.zeropoint_cache_file, "/home/dyros/.tocabi_bootlog/zeropointlog_lower");
     int max_jnum = 33;
@@ -85,6 +85,7 @@ int main(int argc, char **argv)
     }
 
     // printf("[ECAT - INFO] start init process\n");
+    initTocabiArgs(init_args);
     bool init_result = initTocabiSystem(init_args);
     if (!init_result)
     {

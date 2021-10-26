@@ -16,7 +16,7 @@ int main(int argc, char **argv)
     init_args.ecat_device = 1;
     init_args.is_main = true;
     
-    init_args.verbose = false;
+    init_args.verbose = true;
     strcpy(init_args.commutation_cache_file, "/home/dyros/.tocabi_bootlog/commutationlog_upper");
     strcpy(init_args.zeropoint_cache_file, "/home/dyros/.tocabi_bootlog/zeropointlog_upper");
 
@@ -86,6 +86,7 @@ int main(int argc, char **argv)
     }
 
     // printf("[ECAT - INFO] start init process\n");
+    initTocabiArgs(init_args);
     bool init_result = initTocabiSystem(init_args);
     if (!init_result)
     {
