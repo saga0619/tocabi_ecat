@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(tocabi_ecat)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options()
+add_compile_options(-O1)
 
 # ADD_DEFINITIONS(-DTIME_CHECK)
 # ADD_DEFINITIONS(-DECAT_DC)

@@ -180,12 +180,16 @@ enum SAFETY_PROTOCOL
 
 void *ethercatThread1(void *data);
 void *ethercatThread2(void *data);
+void *ethercatThread3(void *data);
 void ethercatCheck(TocabiInitArgs *targs);
 
 double elmoJointMove(double init, double angle, double start_time, double traj_time);
 
 bool controlWordGenerate(const uint16_t statusWord, uint16_t &controlWord);
 void checkFault(const uint16_t statusWord, int slave);
+
+void ecatDiagnose();
+
 bool initTocabiArgs(const TocabiInitArgs &args);
 bool initTocabiSystem(const TocabiInitArgs &args);
 void cleanupTocabiSystem();

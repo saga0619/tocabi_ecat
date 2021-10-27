@@ -252,6 +252,72 @@ void checkFault(const uint16_t statusWord, int slave)
     }
 }
 
+void ecatDiagnose()
+{
+    uint8 link_lost1[ELMO_DOF]; //link lost counter
+    uint8 link_lost2[ELMO_DOF];
+
+    uint8 fe_lost1[ELMO_DOF]; //frame error counter
+    uint8 fe_lost2[ELMO_DOF];
+
+    uint8 ple_lost1[ELMO_DOF]; //physical error counter
+    uint8 ple_lost2[ELMO_DOF];
+
+    int wc = 0;
+
+    for (int slave = 1; slave <= ec_slavecount; slave++)
+    {
+        wc = ec_FPRD(ec_slave[slave].configadr, 0x310, sizeof(link_lost1[slave - 1]), &link_lost1[slave - 1], EC_TIMEOUTRET);
+
+        wc = ec_FPRD(ec_slave[slave].configadr, 0x311, sizeof(link_lost2[slave - 1]), &link_lost2[slave - 1], EC_TIMEOUTRET);
+
+        wc = ec_FPRD(ec_slave[slave].configadr, 0x300, sizeof(fe_lost1[slave - 1]), &fe_lost1[slave - 1], EC_TIMEOUTRET);
+
+        wc = ec_FPRD(ec_slave[slave].configadr, 0x302, sizeof(fe_lost2[slave - 1]), &fe_lost2[slave - 1], EC_TIMEOUTRET);
+
+        wc = ec_FPRD(ec_slave[slave].configadr, 0x301, sizeof(ple_lost1[slave - 1]), &ple_lost1[slave - 1], EC_TIMEOUTRET);
+
+        wc = ec_FPRD(ec_slave[slave].configadr, 0x303, sizeof(ple_lost2[slave - 1]), &ple_lost2[slave - 1], EC_TIMEOUTRET);
+    }
+
+    printf("Error Counter Info : ");
+
+    printf("\nLink Lost Counter 1 : ");
+    for (int i = 0; i < ec_slavecount; i++)
+    {
+        printf("%d\t", link_lost1[i]);
+    }
+
+    printf("\nLink Lost Counter 2 : ");
+    for (int i = 0; i < ec_slavecount; i++)
+    {
+        printf("%d\t", link_lost1[i]);
+    }
+
+    printf("\nFrame Error Counter 1 : ");
+    for (int i = 0; i < ec_slavecount; i++)
+    {
+        printf("%d\t", fe_lost1[i]);
+    }
+
+    printf("\nFrame Error Counter 2 : ");
+    for (int i = 0; i < ec_slavecount; i++)
+    {
+        printf("%d\t", fe_lost2[i]);
+    }
+
+    printf("\nPhysical Error Counter 1 : ");
+    for (int i = 0; i < ec_slavecount; i++)
+    {
+        printf("%d\t", ple_lost1[i]);
+    }    
+    printf("\nPhysical Error Counter 2 : ");
+    for (int i = 0; i < ec_slavecount; i++)
+    {
+        printf("%d\t", ple_lost2[i]);
+    }
+}
+
 void ethercatCheck(TocabiInitArgs *targs)
 {
     if (inOP && ((wkc < expectedWKC) || ec_group[currentgroup].docheckstate))
@@ -394,6 +460,8 @@ bool initTocabiArgs(const TocabiInitArgs &args)
     }
 
     g_init_args = args;
+
+    return true;
 }
 
 bool initTocabiSystem(const TocabiInitArgs &args)
@@ -1522,7 +1590,7 @@ void *ethercatThread1(void *data)
         {
             l_ovf++;
         }
-        if (sat_ns > EC_PACKET_TIMEOUT * 1000)
+        if (sat_ns > EC_PACKET_TIMEOUT_int * 1000)
         {
             s_ovf++;
         }
@@ -1626,6 +1694,12 @@ void *ethercatThread2(void *data)
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts_thread2, NULL);
 
         ethercatCheck(init_args);
+
+        for (int slave = 1; slave <= ec_slavecount; slave++)
+        {
+            checkFault(rxPDO[slave - 1]->statusWord, slave);
+        }
+
         if (init_args->ecat_device == 0)
         {
             int ch = kbhit();
@@ -1651,12 +1725,13 @@ void *ethercatThread2(void *data)
                 }
                 else if ((ch % 256 == 's'))
                 {
-                    printf("------------------------------------------------------\n");
-                    printf("%f\n", control_time_real_);
+                    // printf("------------------------------------------------------\n");
+                    // printf("%f\n", control_time_real_);
                     // for (int i = 0; i < ec_slavecount; i++)
                     // {
                     //     printf("%4d   %20s  %16d\n", i, ELMO_NAME[START_N + i], std::bitset<16>(rxPDO[i]->statusWord));
                     // }
+                    ecatDiagnose();
                 }
                 else if ((ch % 256 == 'd'))
                 {
@@ -1747,6 +1822,17 @@ void *ethercatThread2(void *data)
     }
 
     // std::printf("ELMO : EthercatThread2 Shutdown\n");
+}
+
+void *ethercatThread3(void *data)
+{
+    printf("ECAT DIAGNOSTIC THREAD\n");
+
+    // int
+
+    while (true)
+    {
+    }
 }
 
 double elmoJointMove(double current_time, double init, double angle, double start_time, double traj_time)
