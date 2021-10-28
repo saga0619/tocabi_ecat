@@ -226,7 +226,7 @@ void getErrorName(int err_register, char *err)
 void checkFault(const uint16_t statusWord, int slave)
 {
     char err_text[100] = {0};
-    const bool read_sdo = false;
+    const bool read_sdo = true;
 
     if (statusWord & (1 << FAULT_BIT))
     {
@@ -238,6 +238,7 @@ void checkFault(const uint16_t statusWord, int slave)
             printf("[Fault at slave %d] reading SDO...\n", slave);
             ec_SDOread(slave, 0x1001, 0, false, &data_length, &data1, EC_TIMEOUTRXM);
             ec_SDOread(slave, 0x603f, 0, false, &data_length, &data2, EC_TIMEOUTRXM);
+            // ec_SDOread(slave, 0x306a, 0, false, %data_length, &data3, EC_TIMEOUTRXM);
             int reg = *(uint8_t *)data1;
             int errcode = *(uint16_t *)data2;
             printf("[Err slave %d] Err code: %d Err register: %d", slave, reg, errcode);
@@ -247,8 +248,19 @@ void checkFault(const uint16_t statusWord, int slave)
         else
         {
             printf("[Fault at slave %d] set safety lock but not reading SDO...\n", slave);
-            ElmoSafteyMode[slave] = 1;
+            // ElmoSafteyMode[slave] = 1;
         }
+    }
+}
+void cnt_print(int cnt)
+{
+    if (cnt == 0)
+    {
+        printf("%d\t", cnt);
+    }
+    else
+    {
+        printf("%s%d\t%s", cred, cnt, creset);
     }
 }
 
@@ -262,6 +274,17 @@ void ecatDiagnose()
 
     uint8 ple_lost1[ELMO_DOF]; //physical error counter
     uint8 ple_lost2[ELMO_DOF];
+
+    uint8 fre_lost1[ELMO_DOF]; //frame error counter
+    uint8 fre_lost2[ELMO_DOF];
+
+    uint8 process_unit_error[ELMO_DOF];
+
+    // uint8 link_lost3[ELMO_DOF]; //link lost counter
+    // uint8 link_lost4[ELMO_DOF];
+
+    // uint8 ple_lost3[ELMO_DOF]; //physical error counter
+    // uint8 ple_lost4[ELMO_DOF];
 
     int wc = 0;
 
@@ -278,44 +301,100 @@ void ecatDiagnose()
         wc = ec_FPRD(ec_slave[slave].configadr, 0x301, sizeof(ple_lost1[slave - 1]), &ple_lost1[slave - 1], EC_TIMEOUTRET);
 
         wc = ec_FPRD(ec_slave[slave].configadr, 0x303, sizeof(ple_lost2[slave - 1]), &ple_lost2[slave - 1], EC_TIMEOUTRET);
+
+
+        wc = ec_FPRD(ec_slave[slave].configadr, 0x308, sizeof(fre_lost1[slave - 1]), &fre_lost1[slave - 1], EC_TIMEOUTRET);
+
+        wc = ec_FPRD(ec_slave[slave].configadr, 0x309, sizeof(fre_lost2[slave - 1]), &fre_lost2[slave - 1], EC_TIMEOUTRET);
+
+
+        wc = ec_FPRD(ec_slave[slave].configadr, 0x30C, sizeof(process_unit_error[slave - 1]), &process_unit_error[slave - 1], EC_TIMEOUTRET);
+
+
+
+        // wc = ec_FPRD(ec_slave[slave].configadr, 0x312, sizeof(link_lost3[slave - 1]), &link_lost3[slave - 1], EC_TIMEOUTRET);
+
+        // wc = ec_FPRD(ec_slave[slave].configadr, 0x313, sizeof(link_lost4[slave - 1]), &link_lost4[slave - 1], EC_TIMEOUTRET);
+
+
+        // wc = ec_FPRD(ec_slave[slave].configadr, 0x305, sizeof(ple_lost3[slave - 1]), &ple_lost3[slave - 1], EC_TIMEOUTRET);
+
+        // wc = ec_FPRD(ec_slave[slave].configadr, 0x307, sizeof(ple_lost4[slave - 1]), &ple_lost4[slave - 1], EC_TIMEOUTRET);
     }
 
-    printf("Error Counter Info : ");
-
-    printf("\nLink Lost Counter 1 : ");
+    printf("   Error Cnt Info : \t");
     for (int i = 0; i < ec_slavecount; i++)
     {
-        printf("%d\t", link_lost1[i]);
+        printf("%d\t", i + 1);
     }
 
-    printf("\nLink Lost Counter 2 : ");
+    printf("\n  CRC Err Cnt 0 : \t");
     for (int i = 0; i < ec_slavecount; i++)
     {
-        printf("%d\t", link_lost1[i]);
+        cnt_print(fe_lost1[i]);
     }
 
-    printf("\nFrame Error Counter 1 : ");
+    printf("\n  CRC Err Cnt 1 : \t");
     for (int i = 0; i < ec_slavecount; i++)
     {
-        printf("%d\t", fe_lost1[i]);
+        cnt_print(fe_lost2[i]);
     }
 
-    printf("\nFrame Error Counter 2 : ");
+    printf("\n   RX Err Cnt 0 : \t");
     for (int i = 0; i < ec_slavecount; i++)
     {
-        printf("%d\t", fe_lost2[i]);
+        cnt_print(ple_lost1[i]);
+    }
+    printf("\n   RX Err Cnt 1 : \t");
+    for (int i = 0; i < ec_slavecount; i++)
+    {
+        cnt_print(ple_lost2[i]);
+    }
+    printf("\n Forw Err Cnt 0 : \t");
+    for (int i = 0; i < ec_slavecount; i++)
+    {
+        cnt_print(fre_lost1[i]);
     }
 
-    printf("\nPhysical Error Counter 1 : ");
+    printf("\n Forw Err Cnt 1 : \t");
     for (int i = 0; i < ec_slavecount; i++)
     {
-        printf("%d\t", ple_lost1[i]);
-    }    
-    printf("\nPhysical Error Counter 2 : ");
-    for (int i = 0; i < ec_slavecount; i++)
-    {
-        printf("%d\t", ple_lost2[i]);
+        cnt_print(fre_lost2[i]);
     }
+    printf("\n    EPU Err Cnt : \t");
+    for (int i = 0; i < ec_slavecount; i++)
+    {
+        cnt_print(process_unit_error[i]);
+    }
+    printf("\nLink Lost Cnt 0 : \t");
+    for (int i = 0; i < ec_slavecount; i++)
+    {
+        cnt_print(link_lost1[i]);
+    }
+    printf("\nLink Lost Cnt 1 : \t");
+    for (int i = 0; i < ec_slavecount; i++)
+    {
+        cnt_print(link_lost2[i]);
+    }
+
+
+
+    // printf("\nLink Lost Counter 4 : \t");
+    // for (int i = 0; i < ec_slavecount; i++)
+    // {
+    //     cnt_print(link_lost4[i]);
+    // }
+    // printf("\nPhysi Err Counter 3 : \t");
+    // for (int i = 0; i < ec_slavecount; i++)
+    // {
+    //     cnt_print(ple_lost3[i]);
+    // }
+    // printf("\nPhysi Err Counter 4 : \t");
+    // for (int i = 0; i < ec_slavecount; i++)
+    // {
+    //     cnt_print(ple_lost4[i]);
+    // }
+    printf("\n\n");
 }
 
 void ethercatCheck(TocabiInitArgs *targs)
@@ -467,7 +546,6 @@ bool initTocabiArgs(const TocabiInitArgs &args)
 bool initTocabiSystem(const TocabiInitArgs &args)
 {
 
-    
     // const char *ifname1 = args.port1.c_str();
     char ifname2[100];
     strcpy(ifname2, args.port2);
@@ -511,7 +589,7 @@ bool initTocabiSystem(const TocabiInitArgs &args)
         }
         ec_slave[slave].CoEdetails ^= ECT_COEDET_SDOCA;
     }
-    
+
     for (int slave = 1; slave <= ec_slavecount; slave++)
     {
         //0x1605 :  Target Position             32bit
@@ -837,7 +915,6 @@ void *ethercatThread1(void *data)
         // while (EcatError)
         //     printf("%f %s", control_time_real_, ec_elist2string());
 
-    
         for (int i = 0; i < ec_slavecount; i++)
         {
             // printf("%d\t",rxPDO[i]->statusWord);
@@ -884,7 +961,7 @@ void *ethercatThread1(void *data)
             }
             elmost[i].state_before = elmost[i].state;
         }
-            // printf("\n");
+        // printf("\n");
 
         if (check_commutation)
         {
@@ -1038,7 +1115,6 @@ void *ethercatThread1(void *data)
                 }
             }
         }
-        
 
         for (int slave = 1; slave <= ec_slavecount; slave++)
         {
@@ -1590,7 +1666,7 @@ void *ethercatThread1(void *data)
         {
             l_ovf++;
         }
-        if (sat_ns > EC_PACKET_TIMEOUT_int * 1000)
+        if (sat_ns > EC_PACKET_TIMEOUT * 1000)
         {
             s_ovf++;
         }
@@ -1682,6 +1758,9 @@ void *ethercatThread2(void *data)
 
     clock_gettime(CLOCK_MONOTONIC, &ts_thread2);
 
+    int thread2_cnt = 0;
+    bool diag_switch = false;
+
     while (!shm_msgs_->shutdown)
     {
         ts_thread2.tv_nsec += 1000000;
@@ -1698,6 +1777,14 @@ void *ethercatThread2(void *data)
         for (int slave = 1; slave <= ec_slavecount; slave++)
         {
             checkFault(rxPDO[slave - 1]->statusWord, slave);
+        }
+
+        thread2_cnt++;
+
+        if (thread2_cnt % 1000 == 0)
+        {
+            if (diag_switch)
+                ecatDiagnose();
         }
 
         if (init_args->ecat_device == 0)
@@ -1730,8 +1817,8 @@ void *ethercatThread2(void *data)
                     // for (int i = 0; i < ec_slavecount; i++)
                     // {
                     //     printf("%4d   %20s  %16d\n", i, ELMO_NAME[START_N + i], std::bitset<16>(rxPDO[i]->statusWord));
-                    // }
-                    ecatDiagnose();
+                    // }diag_switc
+                    diag_switch = !diag_switch;
                 }
                 else if ((ch % 256 == 'd'))
                 {
@@ -1814,8 +1901,12 @@ void *ethercatThread2(void *data)
                 }
                 else if ((ch % 256 == 'k'))
                 {
-                    // kill_send = true;
-                    printf("kill send \n");
+                    shm_msgs_->safety_disable = !shm_msgs_->safety_disable;
+
+                    if (shm_msgs_->safety_disable)
+                    {
+                        printf("safety disabled\n");
+                    }
                 }
             }
         }

@@ -189,6 +189,7 @@ bool controlWordGenerate(const uint16_t statusWord, uint16_t &controlWord);
 void checkFault(const uint16_t statusWord, int slave);
 
 void ecatDiagnose();
+void cnt_print(int cnt);
 
 bool initTocabiArgs(const TocabiInitArgs &args);
 bool initTocabiSystem(const TocabiInitArgs &args);
