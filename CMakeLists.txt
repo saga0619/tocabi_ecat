@@ -81,12 +81,9 @@ include_directories(
   include
   /usr/local/include/soem
   ${tocabi_lib_INCLUDE_DIRS}
-  /usr/xenomai/include
-  /usr/xenomai/include/cobalt
 )
 
 link_directories(
-  /usr/xenomai/lib
 )
 
 ## Declare a C++ library
@@ -138,11 +135,12 @@ add_executable(watcher src/watcher.cpp)
 #   -pthread
 # )
 target_link_libraries(tocabi_ecat
+
 #tocabi_ecat_rtnet_lib
 -lsoem
 -lpthread
-  ${XENO_CFLAGS}
-  ${XENO_LDFLAGS}
+  # ${XENO_CFLAGS}
+  # ${XENO_LDFLAGS}
 )
 target_link_libraries(tocabi_ecat_lower
   -lsoem

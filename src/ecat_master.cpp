@@ -90,6 +90,8 @@ bool check_commutation_first = true;
 bool query_check_state = false;
 bool zp_lower_calc = true;
 
+volatile bool control_mode = false;
+
 int wait_cnt = 0;
 
 int commutation_joint = 0;
@@ -222,11 +224,29 @@ void getErrorName(int err_register, char *err)
         }
     }
 }
+void printStatusword(const uint16_t statusWord)
+{   
+    char STAT[10] = {'R', 'S', 'E', 'F'};
+
+    for (int i=0; i<4; i++)
+    {
+        if (statusWord & (1 << i))
+        {
+            printf("%c",STAT[i]);
+        }
+        else
+        {
+            printf(" ");
+        }
+    }
+    printf("    ");
+}
+
 
 void checkFault(const uint16_t statusWord, int slave)
 {
     char err_text[100] = {0};
-    const bool read_sdo = true;
+    const bool read_sdo = false;
 
     if (statusWord & (1 << FAULT_BIT))
     {
@@ -302,25 +322,46 @@ void ecatDiagnose()
 
         wc = ec_FPRD(ec_slave[slave].configadr, 0x303, sizeof(ple_lost2[slave - 1]), &ple_lost2[slave - 1], EC_TIMEOUTRET);
 
-
         wc = ec_FPRD(ec_slave[slave].configadr, 0x308, sizeof(fre_lost1[slave - 1]), &fre_lost1[slave - 1], EC_TIMEOUTRET);
 
         wc = ec_FPRD(ec_slave[slave].configadr, 0x309, sizeof(fre_lost2[slave - 1]), &fre_lost2[slave - 1], EC_TIMEOUTRET);
 
-
         wc = ec_FPRD(ec_slave[slave].configadr, 0x30C, sizeof(process_unit_error[slave - 1]), &process_unit_error[slave - 1], EC_TIMEOUTRET);
-
-
 
         // wc = ec_FPRD(ec_slave[slave].configadr, 0x312, sizeof(link_lost3[slave - 1]), &link_lost3[slave - 1], EC_TIMEOUTRET);
 
         // wc = ec_FPRD(ec_slave[slave].configadr, 0x313, sizeof(link_lost4[slave - 1]), &link_lost4[slave - 1], EC_TIMEOUTRET);
 
-
         // wc = ec_FPRD(ec_slave[slave].configadr, 0x305, sizeof(ple_lost3[slave - 1]), &ple_lost3[slave - 1], EC_TIMEOUTRET);
 
         // wc = ec_FPRD(ec_slave[slave].configadr, 0x307, sizeof(ple_lost4[slave - 1]), &ple_lost4[slave - 1], EC_TIMEOUTRET);
     }
+
+    // printf("  Cnt : %d ");
+
+    for (int i = 0; i < (cycle_count/2000) % ec_slavecount;i++)
+    {
+        printf("OO");
+    }
+    printf("\n");
+
+    printf("%d : %ld L avg : %5.2f max : %5.2f amax : %5.2f C avg : %5.2f max : %5.2f amax : %5.2f ovf : %d\n ", g_init_args.ecat_device, cycle_count / 2000, shm_msgs_->lat_avg / 1000.0, shm_msgs_->lat_max / 1000.0, shm_msgs_->lat_max2 / 1000.0, shm_msgs_->send_avg / 1000.0, shm_msgs_->send_max / 1000.0, shm_msgs_->send_max2 / 1000.0, shm_msgs_->send_ovf);
+
+    // shm_msgs_->lat_avg = lat_avg;
+    // shm_msgs_->lat_max = lmax;
+    // shm_msgs_->lat_max2 = lamax;
+    // shm_msgs_->lat_ovf = l_ovf;
+
+    // shm_msgs_->send_avg = send_avg;
+    // shm_msgs_->send_max = smax;
+    // shm_msgs_->send_max2 = samax;
+    // shm_msgs_->send_ovf = s_ovf;
+
+    // c_count = 0;
+    // total1 = 0;
+    // total2 = 0;
+    // lmax = 0;
+    // smax = 0;
 
     printf("   Error Cnt Info : \t");
     for (int i = 0; i < ec_slavecount; i++)
@@ -376,8 +417,6 @@ void ecatDiagnose()
     {
         cnt_print(link_lost2[i]);
     }
-
-
 
     // printf("\nLink Lost Counter 4 : \t");
     // for (int i = 0; i < ec_slavecount; i++)
@@ -1431,20 +1470,32 @@ void *ethercatThread1(void *data)
     uint16_t statusWord[ELMO_DOF];
     uint16_t statusWord_before[ELMO_DOF];
     bool status_first = true;
-
+    control_mode = true;
     while (!shm_msgs_->shutdown)
     {
+        bool latency_no_count = false;
+
+        clock_gettime(CLOCK_MONOTONIC, &ts1);
+
+        if (((ts1.tv_sec - ts.tv_sec) * SEC_IN_NSEC + ts1.tv_nsec - ts.tv_nsec) < 0)
+        {
+            latency_no_count = true;
+        }
+
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
 
         control_time_real_ = cycle_count * init_args->period_ns / 1000000000.0;
 
         clock_gettime(CLOCK_MONOTONIC, &ts1);
-
+        
         lat_ns = (ts1.tv_sec - ts.tv_sec) * SEC_IN_NSEC + ts1.tv_nsec - ts.tv_nsec;
+
+        if (latency_no_count)
+            lat_ns = 0;
 
         ec_send_processdata();
         /** PDO I/O refresh */
-        wkc = ec_receive_processdata(EC_PACKET_TIMEOUT);
+        wkc = ec_receive_processdata(350); 
 
         clock_gettime(CLOCK_MONOTONIC, &ts2);
         sat_ns = (ts2.tv_sec - ts1.tv_sec) * SEC_IN_NSEC + ts2.tv_nsec - ts1.tv_nsec;
@@ -1485,13 +1536,18 @@ void *ethercatThread1(void *data)
                     stword_slvs[i] = true;
                 }
             }
-
-            if (stword_changed)
-            {
-                timespec_get(&ts_tt, TIME_UTC + 9);
-                strftime(buff, sizeof buff, "%T", gmtime(&ts_tt.tv_sec));
-                printf("ELMO %d | CNT %ld : PDS EVENT %s.%09ld UTC\n", g_init_args.ecat_device, cycle_count, buff, ts_tt.tv_nsec);
-            }
+            // if (stword_changed)
+            // {
+            //     for (int i=0; i<ec_slavecount; i++)
+            //         printStatusword(statusWord[i]);
+            //     printf("\n");
+            // }
+            // if (stword_changed)
+            // {
+            //     timespec_get(&ts_tt, TIME_UTC + 9);
+            //     strftime(buff, sizeof buff, "%T", gmtime(&ts_tt.tv_sec));
+            //     printf("ELMO %d | CNT %ld : PDS EVENT %s.%09ld UTC\n", g_init_args.ecat_device, cycle_count, buff, ts_tt.tv_nsec);
+            // }
 
             // if (status_changed)
             // {
@@ -1509,7 +1565,7 @@ void *ethercatThread1(void *data)
         {
             for (int slave = 1; slave <= ec_slavecount; slave++)
             {
-                checkFault(rxPDO[slave - 1]->statusWord, slave);
+                // checkFault(rxPDO[slave - 1]->statusWord, slave);
                 if (controlWordGenerate(rxPDO[slave - 1]->statusWord, txPDO[slave - 1]->controlWord))
                 {
                     reachedInitial[slave - 1] = true;
@@ -1705,8 +1761,19 @@ void *ethercatThread1(void *data)
         {
             if (cycle_count % 2000 == 0)
             {
-                printf("%d : %ld L avg : %5.2f max : %5.2f amax : %5.2f C avg : %5.2f max : %5.2f amax : %5.2f ovf : %d\n ", g_init_args.ecat_device, cycle_count / 2000, lat_avg / 1000.0, lmax / 1000.0, lamax / 1000.0, send_avg / 1000.0, smax / 1000.0, samax / 1000.0, s_ovf);
+                //printf("%d : %ld L avg : %5.2f max : %5.2f amax : %5.2f C avg : %5.2f max : %5.2f amax : %5.2f ovf : %d\n ", g_init_args.ecat_device, cycle_count / 2000, lat_avg / 1000.0, lmax / 1000.0, lamax / 1000.0, send_avg / 1000.0, smax / 1000.0, samax / 1000.0, s_ovf);
                 //printf("  rcv max : %7.3f ovf : %d mid max : %7.3f ovf : %d snd max : %7.3f ovf : %d statwrd chg cnt : %d\n", low_rcv_max / 1000.0, low_rcv_ovf, low_mid_max / 1000.0, low_mid_ovf, low_snd_max / 1000.0, low_snd_ovf, status_changed_count);
+
+                shm_msgs_->lat_avg = lat_avg;
+                shm_msgs_->lat_max = lmax;
+                shm_msgs_->lat_max2 = lamax;
+                shm_msgs_->lat_ovf = l_ovf;
+
+                shm_msgs_->send_avg = send_avg;
+                shm_msgs_->send_max = smax;
+                shm_msgs_->send_max2 = samax;
+                shm_msgs_->send_ovf = s_ovf;
+
                 c_count = 0;
                 total1 = 0;
                 total2 = 0;
@@ -1748,6 +1815,8 @@ void *ethercatThread1(void *data)
     printf("ELMO : Checking EC STATE ... \n");
     ec_statecheck(0, EC_STATE_PRE_OP, EC_TIMEOUTSTATE);
     printf("ELMO : Checking EC STATE Complete \n");
+
+    return (void *)NULL;
 }
 
 void *ethercatThread2(void *data)
@@ -1774,11 +1843,13 @@ void *ethercatThread2(void *data)
 
         ethercatCheck(init_args);
 
-        for (int slave = 1; slave <= ec_slavecount; slave++)
+        if (control_mode)
         {
-            checkFault(rxPDO[slave - 1]->statusWord, slave);
+            for (int slave = 1; slave <= ec_slavecount; slave++)
+            {
+                //checkFault(rxPDO[slave - 1]->statusWord, slave);
+            }
         }
-
         thread2_cnt++;
 
         if (thread2_cnt % 1000 == 0)
@@ -1913,6 +1984,7 @@ void *ethercatThread2(void *data)
     }
 
     // std::printf("ELMO : EthercatThread2 Shutdown\n");
+    return (void *)NULL;
 }
 
 void *ethercatThread3(void *data)
@@ -1924,6 +1996,9 @@ void *ethercatThread3(void *data)
     while (true)
     {
     }
+
+
+    return (void *)NULL;
 }
 
 double elmoJointMove(double current_time, double init, double angle, double start_time, double traj_time)
