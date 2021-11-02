@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(tocabi_ecat)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-O1)
+add_compile_options(-O)
 
 # ADD_DEFINITIONS(-DTIME_CHECK)
 # ADD_DEFINITIONS(-DECAT_DC)
@@ -139,8 +139,9 @@ target_link_libraries(tocabi_ecat
 #tocabi_ecat_rtnet_lib
 -lsoem
 -lpthread
-  # ${XENO_CFLAGS}
-  # ${XENO_LDFLAGS}
+
+  ${XENO_CFLAGS}
+  ${XENO_LDFLAGS}
 )
 target_link_libraries(tocabi_ecat_lower
   -lsoem

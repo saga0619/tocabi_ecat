@@ -225,14 +225,14 @@ void getErrorName(int err_register, char *err)
     }
 }
 void printStatusword(const uint16_t statusWord)
-{   
+{
     char STAT[10] = {'R', 'S', 'E', 'F'};
 
-    for (int i=0; i<4; i++)
+    for (int i = 0; i < 4; i++)
     {
         if (statusWord & (1 << i))
         {
-            printf("%c",STAT[i]);
+            printf("%c", STAT[i]);
         }
         else
         {
@@ -241,7 +241,6 @@ void printStatusword(const uint16_t statusWord)
     }
     printf("    ");
 }
-
 
 void checkFault(const uint16_t statusWord, int slave)
 {
@@ -281,6 +280,200 @@ void cnt_print(int cnt)
     else
     {
         printf("%s%d\t%s", cred, cnt, creset);
+    }
+}
+
+void ecatDiagnoseOnChange()
+{
+    uint8 link_lost1[ELMO_DOF]; //link lost counter
+    uint8 link_lost2[ELMO_DOF];
+
+    uint8 fe_lost1[ELMO_DOF]; //frame error counter
+    uint8 fe_lost2[ELMO_DOF];
+
+    uint8 ple_lost1[ELMO_DOF]; //physical error counter
+    uint8 ple_lost2[ELMO_DOF];
+
+    uint8 fre_lost1[ELMO_DOF]; //frame error counter
+    uint8 fre_lost2[ELMO_DOF];
+
+    uint8 process_unit_error[ELMO_DOF];
+
+    static uint8 link_lost1_p[ELMO_DOF]; //link lost counter
+    static uint8 link_lost2_p[ELMO_DOF];
+
+    static uint8 fe_lost1_p[ELMO_DOF]; //frame error counter
+    static uint8 fe_lost2_p[ELMO_DOF];
+
+    static uint8 ple_lost1_p[ELMO_DOF]; //physical error counter
+    static uint8 ple_lost2_p[ELMO_DOF];
+
+    static uint8 fre_lost1_p[ELMO_DOF]; //frame error counter
+    static uint8 fre_lost2_p[ELMO_DOF];
+
+    static uint8 process_unit_error_p[ELMO_DOF];
+
+    // uint8 link_lost3[ELMO_DOF]; //link lost counter
+    // uint8 link_lost4[ELMO_DOF];
+
+    // uint8 ple_lost3[ELMO_DOF]; //physical error counter
+    // uint8 ple_lost4[ELMO_DOF];
+
+    int wc = 0;
+
+    for (int slave = 1; slave <= ec_slavecount; slave++)
+    {
+        wc = ec_FPRD(ec_slave[slave].configadr, 0x310, sizeof(link_lost1[slave - 1]), &link_lost1[slave - 1], EC_TIMEOUTRET);
+
+        wc = ec_FPRD(ec_slave[slave].configadr, 0x311, sizeof(link_lost2[slave - 1]), &link_lost2[slave - 1], EC_TIMEOUTRET);
+
+        wc = ec_FPRD(ec_slave[slave].configadr, 0x300, sizeof(fe_lost1[slave - 1]), &fe_lost1[slave - 1], EC_TIMEOUTRET);
+
+        wc = ec_FPRD(ec_slave[slave].configadr, 0x302, sizeof(fe_lost2[slave - 1]), &fe_lost2[slave - 1], EC_TIMEOUTRET);
+
+        wc = ec_FPRD(ec_slave[slave].configadr, 0x301, sizeof(ple_lost1[slave - 1]), &ple_lost1[slave - 1], EC_TIMEOUTRET);
+
+        wc = ec_FPRD(ec_slave[slave].configadr, 0x303, sizeof(ple_lost2[slave - 1]), &ple_lost2[slave - 1], EC_TIMEOUTRET);
+
+        wc = ec_FPRD(ec_slave[slave].configadr, 0x308, sizeof(fre_lost1[slave - 1]), &fre_lost1[slave - 1], EC_TIMEOUTRET);
+
+        wc = ec_FPRD(ec_slave[slave].configadr, 0x309, sizeof(fre_lost2[slave - 1]), &fre_lost2[slave - 1], EC_TIMEOUTRET);
+
+        wc = ec_FPRD(ec_slave[slave].configadr, 0x30C, sizeof(process_unit_error[slave - 1]), &process_unit_error[slave - 1], EC_TIMEOUTRET);
+
+        // wc = ec_FPRD(ec_slave[slave].configadr, 0x312, sizeof(link_lost3[slave - 1]), &link_lost3[slave - 1], EC_TIMEOUTRET);
+
+        // wc = ec_FPRD(ec_slave[slave].configadr, 0x313, sizeof(link_lost4[slave - 1]), &link_lost4[slave - 1], EC_TIMEOUTRET);
+
+        // wc = ec_FPRD(ec_slave[slave].configadr, 0x305, sizeof(ple_lost3[slave - 1]), &ple_lost3[slave - 1], EC_TIMEOUTRET);
+
+        // wc = ec_FPRD(ec_slave[slave].configadr, 0x307, sizeof(ple_lost4[slave - 1]), &ple_lost4[slave - 1], EC_TIMEOUTRET);
+    }
+
+    bool link_lost_b = false;
+    bool crc_error_b = false;
+    bool rx_error_b = false;
+    bool frd_error_b = false;
+    bool process_unit_error_b = false;
+
+    for (int i = 0; i < ec_slavecount; i++)
+    {
+        if (link_lost1_p[i] != link_lost1[i])
+            link_lost_b = true;
+        if (link_lost2_p[i] != link_lost2[i])
+            link_lost_b = true;
+
+        if (fe_lost1_p[i] != fe_lost1[i])
+            crc_error_b = true;
+        if (fe_lost2_p[i] != fe_lost2[i])
+            crc_error_b = true;
+
+        if (ple_lost1_p[i] != ple_lost1[i])
+            rx_error_b = true;
+        if (ple_lost2_p[i] != ple_lost2[i])
+            rx_error_b = true;
+
+        if (fre_lost1_p[i] != fre_lost1[i])
+            frd_error_b = true;
+        if (fre_lost2_p[i] != fre_lost2[i])
+            frd_error_b = true;
+
+        if (process_unit_error_p[i] != process_unit_error[i])
+            process_unit_error_b = true;
+    }
+
+    if (link_lost_b)
+    {
+        printf("ECAT %d : Link Lost Event! \n",g_init_args.ecat_device);
+        printf("Link Lost Cnt 0 : \t");
+        for (int i = 0; i < ec_slavecount; i++)
+        {
+            cnt_print(link_lost1[i]);
+        }
+        printf("\nLink Lost Cnt 1 : \t");
+        for (int i = 0; i < ec_slavecount; i++)
+        {
+            cnt_print(link_lost2[i]);
+        }
+        printf("\n\n");
+    }
+
+    if (crc_error_b)
+    {
+        printf("ECAT %d : CRC ERROR Event! \n",g_init_args.ecat_device);
+        printf("  CRC Err Cnt 0 : \t");
+        for (int i = 0; i < ec_slavecount; i++)
+        {
+            cnt_print(fe_lost1[i]);
+        }
+        printf("\n  CRC Err Cnt 1 : \t");
+        for (int i = 0; i < ec_slavecount; i++)
+        {
+            cnt_print(fe_lost2[i]);
+        }
+        printf("\n\n");
+    }
+
+    if (frd_error_b)
+    {
+
+        printf("ECAT %d : Forwarded Error Event! \n",g_init_args.ecat_device);
+        printf(" Forw Err Cnt 0 : \t");
+        for (int i = 0; i < ec_slavecount; i++)
+        {
+            cnt_print(fre_lost1[i]);
+        }
+
+        printf("\n Forw Err Cnt 1 : \t");
+        for (int i = 0; i < ec_slavecount; i++)
+        {
+            cnt_print(fre_lost2[i]);
+        }
+        printf("\n\n");
+    }
+
+    if (rx_error_b)
+    {
+        printf("ECAT %d : RX Error Event! \n",g_init_args.ecat_device);
+        printf("   RX Err Cnt 0 : \t");
+        for (int i = 0; i < ec_slavecount; i++)
+        {
+            cnt_print(ple_lost1[i]);
+        }
+        printf("\n   RX Err Cnt 1 : \t");
+        for (int i = 0; i < ec_slavecount; i++)
+        {
+            cnt_print(ple_lost2[i]);
+        }
+        printf("\n\n");
+    }
+
+    if (process_unit_error_b)
+    {
+        printf("ECAT %d : EPU Error Event! \n",g_init_args.ecat_device);
+        printf("    EPU Err Cnt : \t");
+        for (int i = 0; i < ec_slavecount; i++)
+        {
+            cnt_print(process_unit_error[i]);
+        }
+        printf("\n\n");
+    }
+
+    for (int i = 0; i < ec_slavecount; i++)
+    {
+        link_lost1_p[i] = link_lost1[i]; //link lost counter
+        link_lost2_p[i] = link_lost2[i];
+
+        fe_lost1_p[i] = fe_lost1[i]; //frame error counter
+        fe_lost2_p[i] = fe_lost2[i];
+
+        ple_lost1_p[i] = ple_lost1[i]; //physical error counter
+        ple_lost2_p[i] = ple_lost2[i];
+
+        fre_lost1_p[i] = fre_lost1[i]; //frame error counter
+        fre_lost2_p[i] = fre_lost2[i];
+
+        process_unit_error_p[i] = process_unit_error[i];
     }
 }
 
@@ -339,7 +532,7 @@ void ecatDiagnose()
 
     // printf("  Cnt : %d ");
 
-    for (int i = 0; i < (cycle_count/2000) % ec_slavecount;i++)
+    for (int i = 0; i < (cycle_count / 2000) % ec_slavecount; i++)
     {
         printf("OO");
     }
@@ -1477,7 +1670,7 @@ void *ethercatThread1(void *data)
 
         clock_gettime(CLOCK_MONOTONIC, &ts1);
 
-        if (((ts1.tv_sec - ts.tv_sec) * SEC_IN_NSEC + ts1.tv_nsec - ts.tv_nsec) < 0)
+        if (getTimeDiff(ts1, ts) < 0)
         {
             latency_no_count = true;
         }
@@ -1487,7 +1680,7 @@ void *ethercatThread1(void *data)
         control_time_real_ = cycle_count * init_args->period_ns / 1000000000.0;
 
         clock_gettime(CLOCK_MONOTONIC, &ts1);
-        
+
         lat_ns = (ts1.tv_sec - ts.tv_sec) * SEC_IN_NSEC + ts1.tv_nsec - ts.tv_nsec;
 
         if (latency_no_count)
@@ -1495,7 +1688,7 @@ void *ethercatThread1(void *data)
 
         ec_send_processdata();
         /** PDO I/O refresh */
-        wkc = ec_receive_processdata(350); 
+        wkc = ec_receive_processdata(350);
 
         clock_gettime(CLOCK_MONOTONIC, &ts2);
         sat_ns = (ts2.tv_sec - ts1.tv_sec) * SEC_IN_NSEC + ts2.tv_nsec - ts1.tv_nsec;
@@ -1856,6 +2049,10 @@ void *ethercatThread2(void *data)
         {
             if (diag_switch)
                 ecatDiagnose();
+            else
+            {
+                ecatDiagnoseOnChange();
+            }
         }
 
         if (init_args->ecat_device == 0)
@@ -1996,7 +2193,6 @@ void *ethercatThread3(void *data)
     while (true)
     {
     }
-
 
     return (void *)NULL;
 }
