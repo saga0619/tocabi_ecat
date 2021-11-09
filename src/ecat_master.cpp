@@ -2445,22 +2445,20 @@ void getJointCommand()
 
     if (g_init_args.ecat_device == 1)
     {
-        if (!shm_msgs_->cmd_upper)
-        {
-            shm_msgs_->cmd_upper = true;
-            memcpy(&torque_desired_[Q_START], &shm_msgs_->torqueCommand[Q_START], sizeof(float) * PART_ELMO_DOF);
-            shm_msgs_->cmd_upper = false;
-        }
+        while (shm_msgs_->cmd_upper)
+        {};
+        shm_msgs_->cmd_upper = true;
+        memcpy(&torque_desired_[Q_START], &shm_msgs_->torqueCommand[Q_START], sizeof(float) * PART_ELMO_DOF);
+        shm_msgs_->cmd_upper = false;
     }
 
     if (g_init_args.ecat_device == 2)
     {
-        if (!shm_msgs_->cmd_lower)
-        {
-            shm_msgs_->cmd_lower = true;
-            memcpy(&torque_desired_[Q_START], &shm_msgs_->torqueCommand[Q_START], sizeof(float) * PART_ELMO_DOF);
-            shm_msgs_->cmd_lower = false;
-        }
+        while (shm_msgs_->cmd_lower)
+        {};
+        shm_msgs_->cmd_lower = true;
+        memcpy(&torque_desired_[Q_START], &shm_msgs_->torqueCommand[Q_START], sizeof(float) * PART_ELMO_DOF);
+        shm_msgs_->cmd_lower = false;
     }
 
     commandCount = shm_msgs_->commandCount;
