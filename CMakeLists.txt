@@ -15,11 +15,11 @@ execute_process(COMMAND xeno-config --posix --ldflags OUTPUT_VARIABLE XENO_LDFLA
 message(" xeno flags : " ${XENO_CFLAGS})
 string(FIND ${UNAME_RES} "Sxenomai" wsloc)
 
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${XENO_CFLAGS} ${XENO_LDFLAGS}")
-# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${XENO_CFLAGS} ${XENO_LDFLAGS}")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${XENO_CFLAGS}")
+# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${XENO_CFLAGS}")
 
 # set(CMAKE_BUILD_TYPE DEBUG)
-
+# set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${XENO_LDFLAGS}")
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -79,8 +79,9 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
   include
-  /usr/local/include/soem
   ${tocabi_lib_INCLUDE_DIRS}
+  /usr/local/include/soem
+
 )
 
 link_directories(
@@ -108,10 +109,14 @@ link_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(tocabi_ecat src/main.cpp)
 add_executable(tocabi_ecat src/master_alone.cpp src/ecat_master.cpp  src/ecat_settings.cpp)
-add_executable(tocabi_ecat_lower src/master_lower.cpp src/ecat_master.cpp src/ecat_settings.cpp)
-add_executable(tocabi_ecat_upper src/master_upper.cpp src/ecat_master.cpp src/ecat_settings.cpp)
+add_executable(tocabi_ecat_lower 
+src/master_lower.cpp src/ecat_master.cpp src/ecat_settings.cpp)
+add_executable(tocabi_ecat_upper 
+src/master_upper.cpp src/ecat_master.cpp src/ecat_settings.cpp)
 
-add_executable(watcher src/watcher.cpp)
+# add_executable(red_test src/red_test.c)
+
+#add_executable(watcher src/watcher.cpp)
 
 # add_executable(watcher2 src/watcher_status.cpp)
 
@@ -134,6 +139,11 @@ add_executable(watcher src/watcher.cpp)
 #   -lsoem
 #   -pthread
 # )
+
+# target_link_libraries(red_test
+# soem
+# )
+
 target_link_libraries(tocabi_ecat
 
 #tocabi_ecat_rtnet_lib
