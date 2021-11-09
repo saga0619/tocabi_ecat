@@ -1673,6 +1673,15 @@ void *ethercatThread1(void *data)
         if (getTimeDiff(ts1, ts) < 0)
         {
             latency_no_count = true;
+            while (getTimeDiff(ts1, ts) < 0)
+            {
+                ts.tv_nsec += PRNS;
+                while (ts.tv_nsec >= SEC_IN_NSEC)
+                {
+                    ts.tv_sec++;
+                    ts.tv_nsec -= SEC_IN_NSEC;
+                }
+            }
         }
 
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
@@ -1689,11 +1698,9 @@ void *ethercatThread1(void *data)
         ec_send_processdata();
         /** PDO I/O refresh */
 
-
         clock_gettime(CLOCK_MONOTONIC, &ts1);
 
-
-        wkc = ec_receive_processdata(350);
+        wkc = ec_receive_processdata(0);
 
         clock_gettime(CLOCK_MONOTONIC, &ts2);
         sat_ns = (ts2.tv_sec - ts1.tv_sec) * SEC_IN_NSEC + ts2.tv_nsec - ts1.tv_nsec;

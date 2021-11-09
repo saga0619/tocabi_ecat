@@ -81,6 +81,7 @@ include_directories(
   include
   ${tocabi_lib_INCLUDE_DIRS}
   /usr/local/include/soem
+
 )
 
 link_directories(
@@ -108,8 +109,10 @@ link_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(tocabi_ecat src/main.cpp)
 add_executable(tocabi_ecat src/master_alone.cpp src/ecat_master.cpp  src/ecat_settings.cpp)
-add_executable(tocabi_ecat_lower src/master_lower.cpp src/ecat_master.cpp src/ecat_settings.cpp)
-add_executable(tocabi_ecat_upper src/master_upper.cpp src/ecat_master.cpp src/ecat_settings.cpp)
+add_executable(tocabi_ecat_lower 
+src/master_lower.cpp src/ecat_master.cpp src/ecat_settings.cpp)
+add_executable(tocabi_ecat_upper 
+src/master_upper.cpp src/ecat_master.cpp src/ecat_settings.cpp)
 
 # add_executable(red_test src/red_test.c)
 
@@ -151,16 +154,19 @@ target_link_libraries(tocabi_ecat
   #${XENO_LDFLAGS}
 )
 target_link_libraries(tocabi_ecat_lower
-  -lsoem
+  # -lsoem
   -lpthread
   #${XENO_CFLAGS}
   #${XENO_LDFLAGS}
+
+  /usr/local/lib/libsoem.a
 )
 target_link_libraries(tocabi_ecat_upper
-  -lsoem 
+  # -lsoem 
   -lpthread
   #${XENO_CFLAGS}
   #${XENO_LDFLAGS}
+  /usr/local/lib/libsoem.a
 )
 
 
