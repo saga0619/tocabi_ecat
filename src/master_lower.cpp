@@ -6,8 +6,8 @@ int main(int argc, char **argv)
     mlockall(MCL_CURRENT | MCL_FUTURE);
 
     TocabiInitArgs init_args;
-    strcpy(init_args.port1,"enp1s0f0");
-    strcpy(init_args.port2,"enp1s0f1");
+    strcpy(init_args.port1,"rteth0");
+    strcpy(init_args.port2,"rteth1");
 
     init_args.period_ns = 500 * 1000;
     init_args.ecat_slave_num = 15;
