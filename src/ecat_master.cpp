@@ -384,7 +384,7 @@ void ecatDiagnoseOnChange()
 
     if (link_lost_b)
     {
-        printf("ECAT %d : Link Lost Event! \n",g_init_args.ecat_device);
+        printf("ECAT %d : Link Lost Event! \n", g_init_args.ecat_device);
         printf("Link Lost Cnt 0 : \t");
         for (int i = 0; i < ec_slavecount; i++)
         {
@@ -400,7 +400,7 @@ void ecatDiagnoseOnChange()
 
     if (crc_error_b)
     {
-        printf("ECAT %d : CRC ERROR Event! \n",g_init_args.ecat_device);
+        printf("ECAT %d : CRC ERROR Event! \n", g_init_args.ecat_device);
         printf("  CRC Err Cnt 0 : \t");
         for (int i = 0; i < ec_slavecount; i++)
         {
@@ -417,7 +417,7 @@ void ecatDiagnoseOnChange()
     if (frd_error_b)
     {
 
-        printf("ECAT %d : Forwarded Error Event! \n",g_init_args.ecat_device);
+        printf("ECAT %d : Forwarded Error Event! \n", g_init_args.ecat_device);
         printf(" Forw Err Cnt 0 : \t");
         for (int i = 0; i < ec_slavecount; i++)
         {
@@ -434,7 +434,7 @@ void ecatDiagnoseOnChange()
 
     if (rx_error_b)
     {
-        printf("ECAT %d : RX Error Event! \n",g_init_args.ecat_device);
+        printf("ECAT %d : RX Error Event! \n", g_init_args.ecat_device);
         printf("   RX Err Cnt 0 : \t");
         for (int i = 0; i < ec_slavecount; i++)
         {
@@ -450,7 +450,7 @@ void ecatDiagnoseOnChange()
 
     if (process_unit_error_b)
     {
-        printf("ECAT %d : EPU Error Event! \n",g_init_args.ecat_device);
+        printf("ECAT %d : EPU Error Event! \n", g_init_args.ecat_device);
         printf("    EPU Err Cnt : \t");
         for (int i = 0; i < ec_slavecount; i++)
         {
@@ -1688,6 +1688,11 @@ void *ethercatThread1(void *data)
 
         ec_send_processdata();
         /** PDO I/O refresh */
+
+
+        clock_gettime(CLOCK_MONOTONIC, &ts1);
+
+
         wkc = ec_receive_processdata(350);
 
         clock_gettime(CLOCK_MONOTONIC, &ts2);
@@ -2383,6 +2388,12 @@ void sendJointStatus()
 
     if (g_init_args.ecat_device == 1)
     {
+        pthread_mutex_trylock(&shm_msgs_->si_mutex);
+
+        pthread_cond_signal(&shm_msgs_->si_cond_);
+
+        pthread_mutex_unlock(&shm_msgs_->si_mutex);
+
         shm_msgs_->statusCount = cycle_count; //,memory_order_release);
     }
     // // TODO: 2
@@ -2407,7 +2418,7 @@ void getJointCommand()
 
     static int stloop;
     static bool stloop_check;
-    stloop_check = false;
+    stloop_check = true;
     if (stloop == shm_msgs_->stloopCount)
     {
         stloop_check = true;
@@ -2430,7 +2441,32 @@ void getJointCommand()
 
     // memcpy(&command_mode_[Q_START], &shm_msgs_->commandMode[Q_START], sizeof(int) * PART_ELMO_DOF);
     // memcpy(&q_desired_[Q_START], &shm_msgs_->positionCommand[Q_START], sizeof(float) * PART_ELMO_DOF);
+
+    if (g_init_args.ecat_device == 1)
+    {
+        pthread_mutex_trylock(&shm_msgs_->emtx_1);
+        // pthread_spin_trylock(&shm_msgs_->espl_1);
+    }
+    if (g_init_args.ecat_device == 2)
+    {
+        pthread_mutex_trylock(&shm_msgs_->emtx_2);
+        // pthread_spin_trylock(&shm_msgs_->espl_2);
+    }
+
     memcpy(&torque_desired_[Q_START], &shm_msgs_->torqueCommand[Q_START], sizeof(float) * PART_ELMO_DOF);
+
+    if (g_init_args.ecat_device == 1)
+    {
+
+        // pthread_spin_unlock(&shm_msgs_->espl_1);
+        pthread_mutex_unlock(&shm_msgs_->emtx_1);
+    }
+    if (g_init_args.ecat_device == 2)
+    {
+
+        // pthread_spin_unlock(&shm_msgs_->espl_2);
+        pthread_mutex_unlock(&shm_msgs_->emtx_2);
+    }
 
     commandCount = shm_msgs_->commandCount;
 
