@@ -1,6 +1,9 @@
 #include "tocabi_ecat/ecat_master.h"
 // #include "bitset"
 
+pthread_cond_t rcv_cond_;
+pthread_mutex_t rcv_mtx_;
+
 const int FAULT_BIT = 3;
 const int OPERATION_ENABLE_BIT = 2;
 const int SWITCHED_ON_BIT = 1;
@@ -40,6 +43,8 @@ EtherCAT_Elmo::ElmoGoldDevice::elmo_gold_tx *txPDO[ELMO_DOF];
 
 bool ElmoConnected = false;
 bool ElmoTerminate = false;
+
+bool diag_switch = false;
 
 int fz_group1[18] = {
     Neck_Joint, Head_Joint,
@@ -91,6 +96,8 @@ bool query_check_state = false;
 bool zp_lower_calc = true;
 
 volatile bool control_mode = false;
+
+volatile int rcv_cnt;
 
 int wait_cnt = 0;
 
@@ -254,19 +261,19 @@ void checkFault(const uint16_t statusWord, int slave)
             char data1[128] = {0};
             char data2[128] = {0};
             int data_length = sizeof(data1) - 1;
-            printf("[Fault at slave %d] reading SDO...\n", slave);
+            printf("ECAT %d : [Fault at slave %d] reading SDO...\n", g_init_args.ecat_device, slave);
             ec_SDOread(slave, 0x1001, 0, false, &data_length, &data1, EC_TIMEOUTRXM);
             ec_SDOread(slave, 0x603f, 0, false, &data_length, &data2, EC_TIMEOUTRXM);
             // ec_SDOread(slave, 0x306a, 0, false, %data_length, &data3, EC_TIMEOUTRXM);
             int reg = *(uint8_t *)data1;
             int errcode = *(uint16_t *)data2;
-            printf("[Err slave %d] Err code: %d Err register: %d", slave, reg, errcode);
+            printf("ECAT %d : [Err slave %d] Err code: %d Err register: %d", g_init_args.ecat_device, slave, reg, errcode);
             getErrorName(reg, err_text);
             printf("#%s#\n", err_text);
         }
         else
         {
-            printf("[Fault at slave %d] set safety lock but not reading SDO...\n", slave);
+            printf("ECAT %d : [Fault at slave %d] set safety lock but not reading SDO...\n", g_init_args.ecat_device, slave);
             // ElmoSafteyMode[slave] = 1;
         }
     }
@@ -727,7 +734,9 @@ void elmoInit()
 
     elmofz[Waist2_Joint].init_direction = -1.0;
 
-    elmofz[R_Elbow_Joint].req_length = 0.06;
+    elmofz[Neck_Joint].req_length = 0.11;
+
+    elmofz[R_Elbow_Joint].req_length = 0.05;
     elmofz[L_Elbow_Joint].req_length = 0.05;
     elmofz[L_Forearm_Joint].req_length = 0.08;
     elmofz[R_Forearm_Joint].req_length = 0.14;
@@ -757,6 +766,9 @@ void elmoInit()
 }
 bool initTocabiArgs(const TocabiInitArgs &args)
 {
+    pthread_mutex_init(&rcv_mtx_, NULL);
+    pthread_cond_init(&rcv_cond_, NULL);
+
     Q_START = args.q_start_;
     PART_ELMO_DOF = args.ecat_slave_num;
     START_N = args.ecat_slave_start_num;
@@ -1377,7 +1389,7 @@ void *ethercatThread1(void *data)
                          ((int32_t)ec_slave[slave].inputs[18] << 16) +
                          ((int32_t)ec_slave[slave].inputs[19] << 24) - q_ext_mod_elmo_[START_N + slave - 1]) *
                         EXTCNT2RAD[START_N + slave - 1] * elmo_ext_axis_direction[START_N + slave - 1];
-                    if (START_N + slave == 1 || START_N + slave == 2 || START_N + slave == 19 || START_N + slave == 20 || START_N + slave == 16)
+                    if (START_N + slave == 1 || START_N + slave == 2 || START_N + slave == 7 || START_N + slave == 19 || START_N + slave == 20 || START_N + slave == 16)
                     {
                         hommingElmo[START_N + slave - 1] = !hommingElmo[START_N + slave - 1];
                     }
@@ -1626,6 +1638,8 @@ void *ethercatThread1(void *data)
     float lmax, lamax, lmin, ldev, lavg, lat;
     float smax, samax, smin, sdev, savg, sat;
 
+    rcv_cnt = 0;
+
     int l_ovf = 0;
     int s_ovf = 0;
 
@@ -1664,6 +1678,16 @@ void *ethercatThread1(void *data)
     uint16_t statusWord_before[ELMO_DOF];
     bool status_first = true;
     control_mode = true;
+
+    if (init_args->ecat_device == 1)
+    {
+        shm_msgs_->controlModeUpper = true;
+    }
+    else if (init_args->ecat_device == 2)
+    {
+        shm_msgs_->controlModeLower = true;
+    }
+
     while (!shm_msgs_->shutdown)
     {
         bool latency_no_count = false;
@@ -1684,6 +1708,8 @@ void *ethercatThread1(void *data)
             }
         }
 
+        ec_send_processdata();
+
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
 
         control_time_real_ = cycle_count * init_args->period_ns / 1000000000.0;
@@ -1695,12 +1721,18 @@ void *ethercatThread1(void *data)
         if (latency_no_count)
             lat_ns = 0;
 
-        ec_send_processdata();
         /** PDO I/O refresh */
 
         clock_gettime(CLOCK_MONOTONIC, &ts1);
 
-        wkc = ec_receive_processdata(0);
+        pthread_mutex_lock(&rcv_mtx_);
+
+        pthread_cond_signal(&rcv_cond_);
+
+        pthread_mutex_unlock(&rcv_mtx_);
+
+        wkc = ec_receive_processdata(EC_PACKET_TIMEOUT);
+        rcv_cnt++;
 
         clock_gettime(CLOCK_MONOTONIC, &ts2);
         sat_ns = (ts2.tv_sec - ts1.tv_sec) * SEC_IN_NSEC + ts2.tv_nsec - ts1.tv_nsec;
@@ -1796,7 +1828,7 @@ void *ethercatThread1(void *data)
                          ((int32_t)ec_slave[slave].inputs[18] << 16) +
                          ((int32_t)ec_slave[slave].inputs[19] << 24) - q_ext_mod_elmo_[START_N + slave - 1]) *
                         EXTCNT2RAD[START_N + slave - 1] * elmo_ext_axis_direction[START_N + slave - 1];
-                    if (START_N + slave == 1 || START_N + slave == 2 || START_N + slave == 19 || START_N + slave == 20 || START_N + slave == 16)
+                    if (START_N + slave == 1 || START_N + slave == 2 || START_N + slave == 7 || START_N + slave == 19 || START_N + slave == 20 || START_N + slave == 16)
                     {
                         hommingElmo[START_N + slave - 1] = !hommingElmo[START_N + slave - 1];
                     }
@@ -1843,13 +1875,13 @@ void *ethercatThread1(void *data)
         }
 
         //Joint safety checking ..
-        static int safe_count = 10;
+        // static int safe_count = 10;
 
-        if (safe_count-- < 0)
-        {
+        // if (safe_count-- < 0)
+        // {
             if (!shm_msgs_->safety_disable)
                 checkJointSafety();
-        }
+        // }
 
         //ECAT JOINT COMMAND
         for (int i = 0; i < ec_slavecount; i++)
@@ -1871,7 +1903,7 @@ void *ethercatThread1(void *data)
             if (ElmoMode[START_N + i] == EM_POSITION)
             {
                 txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousPositionmode;
-                txPDO[i]->targetPosition = (int)(elmo_axis_direction[START_N + i] * RAD2CNT[START_N + i] * q_desired_elmo_[START_N + i]);
+                txPDO[i]->targetPosition = (int)(elmo_axis_direction[START_N + i] * RAD2CNT[START_N + i] * (q_desired_elmo_[START_N + i] + q_zero_elmo_[START_N + i]));
                 txPDO[i]->maxTorque = (uint16)maxTorque; // originaly 1000
             }
             else if (ElmoMode[START_N + i] == EM_TORQUE)
@@ -2033,7 +2065,8 @@ void *ethercatThread2(void *data)
     clock_gettime(CLOCK_MONOTONIC, &ts_thread2);
 
     int thread2_cnt = 0;
-    bool diag_switch = false;
+
+    int rcv_cnt_t2 = 0;
 
     while (!shm_msgs_->shutdown)
     {
@@ -2046,16 +2079,33 @@ void *ethercatThread2(void *data)
         }
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts_thread2, NULL);
 
-        ethercatCheck(init_args);
-
         if (control_mode)
         {
             for (int slave = 1; slave <= ec_slavecount; slave++)
             {
-                //checkFault(rxPDO[slave - 1]->statusWord, slave);
+                checkFault(rxPDO[slave - 1]->statusWord, slave);
             }
         }
+
         thread2_cnt++;
+
+        // if (control_mode)
+        // {
+        //     if (rcv_cnt == rcv_cnt_t2)
+        //     {
+
+        //         // printf("ELMO %d : rcv not increased \n", g_init_args.ecat_device);
+
+        //         ec_send_processdata();
+        //     }
+
+        //     rcv_cnt_t2 = rcv_cnt;
+        // }
+
+        if (thread2_cnt % 4 == 0)
+        {
+            ethercatCheck(init_args);
+        }
 
         if (thread2_cnt % 1000 == 0)
         {
@@ -2066,6 +2116,94 @@ void *ethercatThread2(void *data)
                 ecatDiagnoseOnChange();
             }
         }
+    }
+
+    // std::printf("ELMO : EthercatThread2 Shutdown\n");
+    return (void *)NULL;
+}
+
+void *ethercatThread3(void *data)
+{
+    TocabiInitArgs *init_args = (TocabiInitArgs *)data;
+
+    struct timespec ts_thread3, ts_timeout, ts_timeout2, ts_timeout3;
+
+    ts_timeout.tv_nsec = 350000;
+    ts_timeout.tv_sec = 0;
+
+    ts_timeout2.tv_nsec = 500000;
+    ts_timeout2.tv_sec = 0;
+
+    ts_timeout3.tv_nsec = 150000;
+    ts_timeout3.tv_sec = 0;
+
+    clock_gettime(CLOCK_MONOTONIC, &ts_thread3);
+
+    int thread3 = 0;
+
+    int rcv_cnt_thread3 = 0;
+
+    while (!shm_msgs_->shutdown)
+    {
+        pthread_mutex_lock(&rcv_mtx_);
+
+        pthread_cond_timedwait(&rcv_cond_, &rcv_mtx_, &ts_timeout3);
+
+        pthread_mutex_unlock(&rcv_mtx_);
+
+        clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_timeout2, NULL);
+
+        // if (thread3 % 4000 == 0)
+        // {
+        //     printf("ECAT %d : Hello from Thread3 \n", init_args->ecat_device);
+        // }
+
+        if (control_mode && (rcv_cnt_thread3 == rcv_cnt))
+        {
+            printf("ELMO %d : SAME RCV CNT DETECTED \n", init_args->ecat_device);
+            ec_send_processdata();
+            clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_timeout2, NULL);
+
+            while (rcv_cnt_thread3 == rcv_cnt)
+            {
+                printf("ELMO %d : SENDING FOR RECOVERY ...  \n ", init_args->ecat_device);
+
+                ec_send_processdata();
+                clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_timeout2, NULL);
+            }
+            printf("ELMO %d : RCV CNT UPDATE CHECK \n ", init_args->ecat_device);
+        }
+
+        // if (control_mode) //Watching Other ECAT systems..
+        // {
+        //     if (g_init_args.ecat_device == 1)
+        //     {
+        //         if (shm_msgs_->controlModeLower)
+        //         {
+        //             static int monitor_other_devie = shm_msgs_->statusCount2 - shm_msgs_->statusCount;
+
+        //             printf("ECAT %d : different status Count on Other ECAT  \n", g_init_args.ecat_device);
+        //         }
+        //     }
+        //     else if (g_init_args.ecat_device == 2)
+        //     {
+        //         if (shm_msgs_->controlModeUpper)
+        //         {
+        //             static int monitor_other_devie = shm_msgs_->statusCount - shm_msgs_->statusCount2;
+
+        //             if (monitor_other_devie != (shm_msgs_->statusCount - shm_msgs_->statusCount2))
+        //             {
+        //                 monitor_other_devie = shm_msgs_->statusCount - shm_msgs_->statusCount2;
+        //             }
+
+        //             printf("ECAT %d : different status Count on Other ECAT \n", g_init_args.ecat_device);
+        //         }
+        //     }
+        // }
+
+        rcv_cnt_thread3 = rcv_cnt;
+
+        // if(init_args->ecat_device == )
 
         if (init_args->ecat_device == 0)
         {
@@ -2181,29 +2319,12 @@ void *ethercatThread2(void *data)
                 }
                 else if ((ch % 256 == 'k'))
                 {
-                    shm_msgs_->safety_disable = !shm_msgs_->safety_disable;
-
-                    if (shm_msgs_->safety_disable)
-                    {
-                        printf("safety disabled\n");
-                    }
+                    ec_send_processdata();
                 }
             }
         }
-    }
 
-    // std::printf("ELMO : EthercatThread2 Shutdown\n");
-    return (void *)NULL;
-}
-
-void *ethercatThread3(void *data)
-{
-    printf("ECAT DIAGNOSTIC THREAD\n");
-
-    // int
-
-    while (true)
-    {
+        thread3++;
     }
 
     return (void *)NULL;
@@ -2417,6 +2538,8 @@ void getJointCommand()
     //     clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_us1, NULL);
     // }
 
+    cpu_relax();
+
     static int stloop;
     static bool stloop_check;
     stloop_check = false;
@@ -2446,7 +2569,8 @@ void getJointCommand()
     if (g_init_args.ecat_device == 1)
     {
         while (shm_msgs_->cmd_upper)
-        {};
+        {
+        };
         shm_msgs_->cmd_upper = true;
         memcpy(&torque_desired_[Q_START], &shm_msgs_->torqueCommand[Q_START], sizeof(float) * PART_ELMO_DOF);
         shm_msgs_->cmd_upper = false;
@@ -2455,7 +2579,8 @@ void getJointCommand()
     if (g_init_args.ecat_device == 2)
     {
         while (shm_msgs_->cmd_lower)
-        {};
+        {
+        };
         shm_msgs_->cmd_lower = true;
         memcpy(&torque_desired_[Q_START], &shm_msgs_->torqueCommand[Q_START], sizeof(float) * PART_ELMO_DOF);
         shm_msgs_->cmd_lower = false;
@@ -2484,59 +2609,80 @@ void getJointCommand()
     static int errorCount = -2;
     static int errorTimes = 0;
 
-    if ((shm_msgs_->controlModeUpper && g_init_args.ecat_device == 1) ||
-        (shm_msgs_->controlModeLower && g_init_args.ecat_device == 2))
+    static bool start_observe = false;
+
+    if (!start_observe)
     {
-
-        if (errorTimes == 0)
+        if (shm_msgs_->controlModeUpper && shm_msgs_->controlModeUpper)
         {
-            if (commandCount <= commandCount_before) //shit
-            {
-                if (stloop_check)
-                {
-                    errorTimes++;
-                    if (errorTimes > 2)
-                        printf("%ld ELMO %d : commandCount Error current : %d before : %d \n", (long)control_time_real_ / 1000, g_init_args.ecat_device, commandCount, commandCount_before);
-                    // std::cout << control_time_us_ << "ELMO_LOW : commandCount Error current : " << commandCount << " before : " << commandCount_before << std::'\n';
-                    // std::cout << "stloop same cnt" << std::'\n';
-                }
-            }
+            start_observe = true;
         }
-        else if (errorTimes > 0)
+    }
+
+    if (start_observe)
+    {
+        if ((shm_msgs_->controlModeUpper && g_init_args.ecat_device == 1) ||
+            (shm_msgs_->controlModeLower && g_init_args.ecat_device == 2))
         {
-            if (commandCount > commandCount_before) // no problem
-            {
-                errorTimes = 0;
-                errorCount = 0;
-            }
-            else //shit
-            {
-                errorTimes++;
 
-                if (errorTimes > CL_LOCK)
+            if (errorTimes == 0)
+            {
+                if (commandCount <= commandCount_before) //shit
                 {
-                    if (errorCount != commandCount)
+                    if (stloop_check)
                     {
-                        printf("%s %f ELMO 1 : commandCount Warn! SAFETY LOCK%s\n", cred, control_time_real_, creset);
-
-                        // std::cout << cred << control_time_us_ << "ELMO_LOW : commandCount Warn! SAFETY LOCK" << creset << std::'\n';
-
-                        // std::fill(ElmoSafteyMode, ElmoSafteyMode + MODEL_DOF, 1);
-
-                        for (int i = 0; i < PART_ELMO_DOF; i++)
-                        {
-                            ElmoSafteyMode[i] = 1;
-                            state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_COMMAND_LOCK;
-                        }
-                        errorCount = commandCount;
+                        errorTimes++;
+                        if (errorTimes > 2)
+                            printf("%ld ELMO %d : commandCount Error wit sterror current : %d before : %d \n", (long)control_time_real_ / 1000, g_init_args.ecat_device, commandCount, commandCount_before);
+                        // std::cout << control_time_us_ << "ELMO_LOW : commandCount Error current : " << commandCount << " before : " << commandCount_before << std::'\n';
+                        // std::cout << "stloop same cnt" << std::'\n';
                     }
                     else
                     {
-                        //std::cout << errorTimes << "ELMO_LOW : commandCount error duplicated" << std::'\n';
+                        // printf("%ld ELMO %d : commandCount Error without st current : %d before : %d \n", (long)control_time_real_ / 1000, g_init_args.ecat_device, commandCount, commandCount_before);
+                    }
+                }
+            }
+            else if (errorTimes > 0)
+            {
+                if (commandCount > commandCount_before) // no problem
+                {
+                    errorTimes = 0;
+                    errorCount = 0;
+                }
+                else //shit
+                {
+                    errorTimes++;
+
+                    if (errorTimes > CL_LOCK)
+                    {
+                        if (errorCount != commandCount)
+                        {
+                            printf("%s %f ELMO %d : commandCount Warn! SAFETY LOCK%s\n", cred, control_time_real_, g_init_args.ecat_device, creset);
+
+                            // std::cout << cred << control_time_us_ << "ELMO_LOW : commandCount Warn! SAFETY LOCK" << creset << std::'\n';
+
+                            // std::fill(ElmoSafteyMode, ElmoSafteyMode + MODEL_DOF, 1);
+
+                            for (int i = 0; i < ec_slavecount; i++)
+                            {
+                                ElmoSafteyMode[START_N + i] = 1;
+                                state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_COMMAND_LOCK;
+                            }
+                            errorCount = commandCount;
+                        }
+                        else
+                        {
+                            //std::cout << errorTimes << "ELMO_LOW : commandCount error duplicated" << std::'\n';
+                        }
                     }
                 }
             }
         }
+    }
+    else
+    {
+        shm_msgs_->maxTorque = 0;
     }
 
     commandCount_before2 = commandCount_before;

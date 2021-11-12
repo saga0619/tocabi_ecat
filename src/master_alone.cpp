@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
 
     struct sched_param param;
     pthread_attr_t attr, attr2;
-    pthread_t thread1, thread2;
+    pthread_t thread1, thread2, thread3;
     int ret = 0;
 
 
@@ -133,6 +133,12 @@ int main(int argc, char *argv[])
         printf("create pthread 2 failed\n");
         return ret;
     }
+    ret = pthread_create(&thread3, &attr, ethercatThread3, &init_args);
+    if (ret)
+    {
+        printf("create pthread 2 failed\n");
+        return ret;
+    }
 
     pthread_attr_destroy(&attr);
     pthread_attr_destroy(&attr2);
@@ -143,6 +149,10 @@ int main(int argc, char *argv[])
         printf("join pthread failed: %m\n");
 
     ret = pthread_join(thread2, NULL);
+    if (ret)
+        printf("join pthread failed: %m\n");
+
+    ret = pthread_join(thread3, NULL);
     if (ret)
         printf("join pthread failed: %m\n");
 
