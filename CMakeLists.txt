@@ -116,7 +116,7 @@ src/master_upper.cpp src/ecat_master.cpp src/ecat_settings.cpp)
 
 # add_executable(red_test src/red_test.c)
 
-#add_executable(watcher src/watcher.cpp)
+add_executable(watcher src/watcher.cpp)
 
 # add_executable(watcher2 src/watcher_status.cpp)
 
