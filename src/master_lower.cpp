@@ -6,8 +6,8 @@ int main(int argc, char **argv)
     mlockall(MCL_CURRENT | MCL_FUTURE);
 
     TocabiInitArgs init_args;
-    strcpy(init_args.port1,"rteth0");
-    strcpy(init_args.port2,"rteth1");
+    strcpy(init_args.port1,"rteth3");
+    strcpy(init_args.port2,"rteth2");
 
     init_args.period_ns = 500 * 1000;
     init_args.ecat_slave_num = 15;
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
         printf("create pthread 2 failed\n");
         return ret;
     }
-  ret = pthread_create(&thread3, &attr, ethercatThread3, &init_args);
+    ret = pthread_create(&thread3, &attr2, ethercatThread3, &init_args);
     if (ret)
     {
         printf("create pthread 2 failed\n");

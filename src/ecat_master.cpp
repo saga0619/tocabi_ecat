@@ -872,7 +872,7 @@ bool initTocabiSystem(const TocabiInitArgs &args)
 
 #endif
     while (EcatError)
-        printf("%s", ec_elist2string());
+        printf("%s\n", ec_elist2string());
     printf("ELMO %d : EC WAITING STATE TO SAFE_OP\n", args.ecat_device);
     ec_statecheck(0, EC_STATE_SAFE_OP, EC_TIMEOUTSTATE * 4);
     ec_readstate();
@@ -1621,7 +1621,7 @@ void *ethercatThread1(void *data)
     }
 
     if (!shm_msgs_->shutdown)
-        printf("%sELMO %d: Control Mode Start ... %s\n", cgreen, g_init_args.ecat_device, creset);
+        printf("%sELMO %d: Control Mode Start ... at%ld %s\n", cgreen, g_init_args.ecat_device, cycle_count, creset);
 
     // memset(joint_state_elmo_, ESTATE::OPERATION_READY, sizeof(int) * ec_slavecount);
     // st_start_time = std::chrono::steady_clock::now();
@@ -1697,6 +1697,7 @@ void *ethercatThread1(void *data)
         if (getTimeDiff(ts1, ts) < 0)
         {
             latency_no_count = true;
+            int ov_cnt = 0;
             while (getTimeDiff(ts1, ts) < 0)
             {
                 ts.tv_nsec += PRNS;
@@ -1705,7 +1706,9 @@ void *ethercatThread1(void *data)
                     ts.tv_sec++;
                     ts.tv_nsec -= SEC_IN_NSEC;
                 }
+                ov_cnt++;
             }
+            printf("ov_cnt event at ELMO %d\n", init_args->ecat_device);
         }
 
         ec_send_processdata();
@@ -1733,6 +1736,9 @@ void *ethercatThread1(void *data)
 
         wkc = ec_receive_processdata(EC_PACKET_TIMEOUT);
         rcv_cnt++;
+
+        __asm volatile("pause" ::
+                           : "memory");
 
         clock_gettime(CLOCK_MONOTONIC, &ts2);
         sat_ns = (ts2.tv_sec - ts1.tv_sec) * SEC_IN_NSEC + ts2.tv_nsec - ts1.tv_nsec;
@@ -1879,8 +1885,8 @@ void *ethercatThread1(void *data)
 
         // if (safe_count-- < 0)
         // {
-            if (!shm_msgs_->safety_disable)
-                checkJointSafety();
+        if (!shm_msgs_->safety_disable)
+            checkJointSafety();
         // }
 
         //ECAT JOINT COMMAND
@@ -2158,20 +2164,26 @@ void *ethercatThread3(void *data)
         //     printf("ECAT %d : Hello from Thread3 \n", init_args->ecat_device);
         // }
 
-        if (control_mode && (rcv_cnt_thread3 == rcv_cnt))
+        __asm volatile("pause" ::
+                           : "memory");
+
+        if (rcv_cnt > 10)
         {
-            printf("ELMO %d : SAME RCV CNT DETECTED \n", init_args->ecat_device);
-            ec_send_processdata();
-            clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_timeout2, NULL);
-
-            while (rcv_cnt_thread3 == rcv_cnt)
+            if (control_mode && (rcv_cnt_thread3 == rcv_cnt))
             {
-                printf("ELMO %d : SENDING FOR RECOVERY ...  \n ", init_args->ecat_device);
-
+                printf("ELMO %d : SAME RCV CNT DETECTED AT %d\n", init_args->ecat_device, rcv_cnt);
                 ec_send_processdata();
                 clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_timeout2, NULL);
+
+                while (rcv_cnt_thread3 == rcv_cnt)
+                {
+                    printf("ELMO %d : SENDING FOR RECOVERY ...  %d\n", init_args->ecat_device, rcv_cnt);
+
+                    ec_send_processdata();
+                    clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_timeout2, NULL);
+                }
+                printf("ELMO %d : RCV CNT UPDATE CHECK %d\n", init_args->ecat_device, rcv_cnt);
             }
-            printf("ELMO %d : RCV CNT UPDATE CHECK \n ", init_args->ecat_device);
         }
 
         // if (control_mode) //Watching Other ECAT systems..
@@ -2527,6 +2539,8 @@ void sendJointStatus()
     if (g_init_args.is_main)
     {
         shm_msgs_->triggerS1 = true;
+
+        cpu_relax();
         // atomic_store(&shm_->triggerS1,1,memory_order_release);
     }
 }

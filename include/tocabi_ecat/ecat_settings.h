@@ -26,7 +26,7 @@
 
 #define LEG_DOF 12
 
-#define CL_LOCK 2
+#define CL_LOCK 20
 
 #define UPPERBODY_DOF 21
 
