@@ -6,6 +6,8 @@ int main(int argc, char **argv)
     mlockall(MCL_CURRENT | MCL_FUTURE);
 
     TocabiInitArgs init_args;
+    // strcpy(init_args.port1,"enp4s0f1");
+    // strcpy(init_args.port2,"enp4s0f0");
     strcpy(init_args.port1,"rteth3");
     strcpy(init_args.port2,"rteth2");
 

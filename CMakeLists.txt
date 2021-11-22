@@ -145,8 +145,6 @@ add_executable(watcher src/watcher.cpp)
 # )
 
 target_link_libraries(tocabi_ecat
-
-#tocabi_ecat_rtnet_lib
 -lsoem
 -lpthread
 

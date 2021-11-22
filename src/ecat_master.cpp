@@ -1679,6 +1679,8 @@ void *ethercatThread1(void *data)
     bool status_first = true;
     control_mode = true;
 
+    int control_cnt = 0;
+
     if (init_args->ecat_device == 1)
     {
         shm_msgs_->controlModeUpper = true;
@@ -1690,31 +1692,58 @@ void *ethercatThread1(void *data)
 
     while (!shm_msgs_->shutdown)
     {
+        int mask = 0;
+
+        if (g_init_args.ecat_device == 1) // mask 0
+        {
+            shm_msgs_->e1_m[mask++]++;
+        }
+        else if (g_init_args.ecat_device == 2)
+        {
+            shm_msgs_->e2_m[mask++]++;
+        }
+
         bool latency_no_count = false;
+
+        control_cnt++;
 
         clock_gettime(CLOCK_MONOTONIC, &ts1);
 
-        if (getTimeDiff(ts1, ts) < 0)
-        {
-            latency_no_count = true;
-            int ov_cnt = 0;
-            while (getTimeDiff(ts1, ts) < 0)
-            {
-                ts.tv_nsec += PRNS;
-                while (ts.tv_nsec >= SEC_IN_NSEC)
-                {
-                    ts.tv_sec++;
-                    ts.tv_nsec -= SEC_IN_NSEC;
-                }
-                ov_cnt++;
-            }
-            printf("ov_cnt event at ELMO %d\n", init_args->ecat_device);
-        }
+        // if (getTimeDiff(ts1, ts) < 0)
+        // {
+        //     latency_no_count = true;
+        //     int ov_cnt = 0;
+        //     while (getTimeDiff(ts1, ts) < 0)
+        //     {
+        //         ts.tv_nsec += PRNS;
+        //         while (ts.tv_nsec >= SEC_IN_NSEC)
+        //         {
+        //             ts.tv_sec++;
+        //             ts.tv_nsec -= SEC_IN_NSEC;
+        //         }
+        //         ov_cnt++;
+        //     }
+        //     printf("ov_cnt event at ELMO %d\n", init_args->ecat_device);
+        // }
 
         ec_send_processdata();
-
+        if (g_init_args.ecat_device == 1) // mask 1
+        {
+            shm_msgs_->e1_m[mask++]++;
+        }
+        else if (g_init_args.ecat_device == 2)
+        {
+            shm_msgs_->e2_m[mask++]++;
+        }
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
-
+        if (g_init_args.ecat_device == 1) // mask 2
+        {
+            shm_msgs_->e1_m[mask++]++;
+        }
+        else if (g_init_args.ecat_device == 2)
+        {
+            shm_msgs_->e2_m[mask++]++;
+        }
         control_time_real_ = cycle_count * init_args->period_ns / 1000000000.0;
 
         clock_gettime(CLOCK_MONOTONIC, &ts1);
@@ -1728,17 +1757,34 @@ void *ethercatThread1(void *data)
 
         clock_gettime(CLOCK_MONOTONIC, &ts1);
 
-        pthread_mutex_lock(&rcv_mtx_);
+        if (control_cnt < 2000)
+        {
+            if (pthread_mutex_trylock(&rcv_mtx_) == 0)
+            {
+                pthread_cond_signal(&rcv_cond_);
+                pthread_mutex_unlock(&rcv_mtx_);
+            }
+        }
 
-        pthread_cond_signal(&rcv_cond_);
-
-        pthread_mutex_unlock(&rcv_mtx_);
-
+        if (g_init_args.ecat_device == 1) // mask 3
+        {
+            shm_msgs_->e1_m[mask++]++;
+        }
+        else if (g_init_args.ecat_device == 2)
+        {
+            shm_msgs_->e2_m[mask++]++;
+        }
         wkc = ec_receive_processdata(EC_PACKET_TIMEOUT);
         rcv_cnt++;
-
-        __asm volatile("pause" ::
-                           : "memory");
+        if (g_init_args.ecat_device == 1) //mask4
+        {
+            shm_msgs_->e1_m[mask++]++;
+        }
+        else if (g_init_args.ecat_device == 2)
+        {
+            shm_msgs_->e2_m[mask++]++;
+        }
+        cpu_relax();
 
         clock_gettime(CLOCK_MONOTONIC, &ts2);
         sat_ns = (ts2.tv_sec - ts1.tv_sec) * SEC_IN_NSEC + ts2.tv_nsec - ts1.tv_nsec;
@@ -1853,11 +1899,25 @@ void *ethercatThread1(void *data)
 
             ElmoMode[START_N + i] = EM_DEFAULT;
         }
-
+        if (g_init_args.ecat_device == 1) //mask5
+        {
+            shm_msgs_->e1_m[mask++]++;
+        }
+        else if (g_init_args.ecat_device == 2)
+        {
+            shm_msgs_->e2_m[mask++]++;
+        }
         sendJointStatus();
         if (g_init_args.ecat_device != 0)
             getJointCommand();
-
+        if (g_init_args.ecat_device == 1) //mask6
+        {
+            shm_msgs_->e1_m[mask++]++;
+        }
+        else if (g_init_args.ecat_device == 2)
+        {
+            shm_msgs_->e2_m[mask++]++;
+        }
         // printf("%f %f %f %f %f %f\n",q_elmo_[START_N],q_elmo_[START_N+1],q_elmo_[START_N+2],q_elmo_[START_N+3],q_elmo_[START_N+4],q_elmo_[START_N+5]);
         //memcpy(q_desired_elmo_, &shm_msgs_->positionCommand, sizeof(float) * MODEL_DOF);
 
@@ -2149,40 +2209,103 @@ void *ethercatThread3(void *data)
 
     int rcv_cnt_thread3 = 0;
 
+    bool start_observe = false;
+    int UPLOW_diff = 0;
+    int checkCount = 0;
+    int printCount = 0;
+
     while (!shm_msgs_->shutdown)
     {
-        pthread_mutex_lock(&rcv_mtx_);
-
-        pthread_cond_timedwait(&rcv_cond_, &rcv_mtx_, &ts_timeout3);
-
-        pthread_mutex_unlock(&rcv_mtx_);
-
-        clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_timeout2, NULL);
-
-        // if (thread3 % 4000 == 0)
-        // {
-        //     printf("ECAT %d : Hello from Thread3 \n", init_args->ecat_device);
-        // }
-
-        __asm volatile("pause" ::
-                           : "memory");
-
-        if (rcv_cnt > 10)
+        if (!start_observe)
         {
-            if (control_mode && (rcv_cnt_thread3 == rcv_cnt))
+            if (shm_msgs_->controlModeUpper && shm_msgs_->controlModeLower)
             {
-                printf("ELMO %d : SAME RCV CNT DETECTED AT %d\n", init_args->ecat_device, rcv_cnt);
-                ec_send_processdata();
-                clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_timeout2, NULL);
 
-                while (rcv_cnt_thread3 == rcv_cnt)
+                UPLOW_diff = shm_msgs_->statusCount2 - shm_msgs_->statusCount;
+                start_observe = true;
+                printf("BOTH ECAT ACTIVATED! START WATCHDOG, UL DIFF : %d\n", UPLOW_diff);
+            }
+        }
+        else
+        {
+            checkCount++;
+            printCount++;
+
+            if (checkCount > 2000)
+            {
+                ts_thread3.tv_nsec += 500000;
+
+                if (ts_thread3.tv_nsec >= SEC_IN_NSEC)
                 {
-                    printf("ELMO %d : SENDING FOR RECOVERY ...  %d\n", init_args->ecat_device, rcv_cnt);
-
-                    ec_send_processdata();
-                    clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_timeout2, NULL);
+                    ts_thread3.tv_nsec -= SEC_IN_NSEC;
+                    ts_thread3.tv_sec++;
                 }
-                printf("ELMO %d : RCV CNT UPDATE CHECK %d\n", init_args->ecat_device, rcv_cnt);
+
+                clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts_thread3, NULL);
+                cpu_relax();
+
+                int c_diff = abs((shm_msgs_->statusCount2 - shm_msgs_->statusCount) - UPLOW_diff);
+
+                if (c_diff > 10)
+                {
+                    printf("WARN : C COUNT DIFF IS LARGE ! current diff : %d, init diff : %d ECAT 1 : %d ECAT 2: %d \n", (shm_msgs_->statusCount2 - shm_msgs_->statusCount), UPLOW_diff, (int)shm_msgs_->statusCount, (int)shm_msgs_->statusCount2);
+                }
+
+                // if (control_mode && (rcv_cnt_thread3 == rcv_cnt))
+                // {
+                //     printf("ELMO %d : SAME RCV CNT DETECTED AT %d\n", init_args->ecat_device, rcv_cnt);
+                //     ec_send_processdata();
+                //     ts_thread3.tv_nsec += 500000;
+                //     if (ts_thread3.tv_nsec >= SEC_IN_NSEC)
+                //     {
+                //         ts_thread3.tv_nsec -= SEC_IN_NSEC;
+                //         ts_thread3.tv_sec++;
+                //     }
+                //     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts_thread3, NULL);
+
+                //     while (rcv_cnt_thread3 == rcv_cnt)
+                //     {
+                //         cpu_relax();
+
+                //         printf("ELMO %d : SENDING FOR RECOVERY ...  %d.%ld %d\n", init_args->ecat_device,ts_thread3.tv_sec,ts_thread3.tv_nsec, rcv_cnt);
+
+                //         ec_send_processdata();
+                //         ts_thread3.tv_nsec += 500000;
+                //         if (ts_thread3.tv_nsec >= SEC_IN_NSEC)
+                //         {
+                //             ts_thread3.tv_nsec -= SEC_IN_NSEC;
+                //             ts_thread3.tv_sec++;
+                //         }
+                //         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts_thread3, NULL);
+                //     }
+                //     printf("ELMO %d : RCV CNT UPDATE CHECK %d\n", init_args->ecat_device, rcv_cnt);
+                // }
+
+                if (printCount >= 2000)
+                {
+                    printCount = 0;
+                    if (init_args->ecat_device == 1)
+                    {
+                        printf("ELMO 1 : watchdog count : %d, com2 count : %d up&low diff : %d \n", checkCount, (int)shm_msgs_->statusCount2, UPLOW_diff);
+                    }
+                    else if (init_args->ecat_device == 2)
+                    {
+                        printf("ELMO 2 : watchdog count : %d, com1 count : %d up&low diff : %d \n", checkCount, (int)shm_msgs_->statusCount, UPLOW_diff);
+                    }
+                }
+            }
+            else
+            {
+                if (pthread_mutex_trylock(&rcv_mtx_) == 0)
+                {
+                    pthread_cond_timedwait(&rcv_cond_, &rcv_mtx_, &ts_timeout3);
+                    pthread_mutex_unlock(&rcv_mtx_);
+                }
+
+                clock_gettime(CLOCK_MONOTONIC, &ts_thread3);
+
+                clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_timeout2, NULL);
+                cpu_relax();
             }
         }
 
@@ -2547,6 +2670,10 @@ void sendJointStatus()
 
 void getJointCommand()
 {
+    timespec ts_us1;
+
+    ts_us1.tv_sec = 0;
+    ts_us1.tv_nsec = 1000;
     // while (shm_msgs_->commanding.load(std::memory_order_acquire))
     // {
     //     clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_us1, NULL);
@@ -2584,16 +2711,22 @@ void getJointCommand()
     {
         while (shm_msgs_->cmd_upper)
         {
+            clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_us1, NULL);
         };
-        shm_msgs_->cmd_upper = true;
-        memcpy(&torque_desired_[Q_START], &shm_msgs_->torqueCommand[Q_START], sizeof(float) * PART_ELMO_DOF);
-        shm_msgs_->cmd_upper = false;
+
+        if (!shm_msgs_->cmd_upper)
+        {
+            shm_msgs_->cmd_upper = true;
+            memcpy(&torque_desired_[Q_START], &shm_msgs_->torqueCommand[Q_START], sizeof(float) * PART_ELMO_DOF);
+            shm_msgs_->cmd_upper = false;
+        }
     }
 
     if (g_init_args.ecat_device == 2)
     {
         while (shm_msgs_->cmd_lower)
         {
+            clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_us1, NULL);
         };
         shm_msgs_->cmd_lower = true;
         memcpy(&torque_desired_[Q_START], &shm_msgs_->torqueCommand[Q_START], sizeof(float) * PART_ELMO_DOF);
