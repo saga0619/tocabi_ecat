@@ -14,7 +14,7 @@
 
 #define EC_TIMEOUTMON 500
 
-#define EC_PACKET_TIMEOUT 0
+#define EC_PACKET_TIMEOUT 350
 
 #define PERIOD_OVF 50
 
@@ -26,7 +26,7 @@
 
 #define LEG_DOF 12
 
-#define CL_LOCK 5
+#define CL_LOCK 30
 
 #define UPPERBODY_DOF 21
 

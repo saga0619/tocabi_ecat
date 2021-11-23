@@ -137,6 +137,8 @@ float q_dot_elmo_[ELMO_DOF];  //sendstate
 float torque_elmo_[ELMO_DOF]; //sendstate
 float q_ext_elmo_[ELMO_DOF];
 
+uint32 st_register[ELMO_DOF];
+
 float q_[ELMO_DOF];      //sendstate
 float q_dot_[ELMO_DOF];  //sendstate
 float torque_[ELMO_DOF]; //sendstate
@@ -836,30 +838,37 @@ bool initTocabiSystem(const TocabiInitArgs &args)
 
     for (int slave = 1; slave <= ec_slavecount; slave++)
     {
-        //0x1605 :  Target Position             32bit
-        //          Target Velocity             32bit
-        //          Max Torque                  16bit
-        //          Control word                16bit
-        //          Modes of Operation          16bit
+        //0x1605 :  Target Position             32bit 4
+        //          Target Velocity             32bit 4
+        //          Max Torque                  16bit 2
+        //          Control word                16bit 2
+        //          Modes of Operation          16bit 2
         uint16 map_1c12[2] = {0x0001, 0x1605};
 
-        //0x1a00 :  position actual value       32bit
-        //          Digital Inputs              32bit
-        //          Status word                 16bit
-        //0x1a11 :  velocity actual value       32bit
-        //0x1a13 :  Torque actual value         16bit
-        //0x1a1e :  Auxiliary position value    32bit
+        //0x1a00 :  position actual value       32bit 4B
+        //          Digital Inputs              32bit 4B
+        //          Status word                 16bit 2B
+        //0x1a11 :  velocity actual value       32bit 4B
+        //0x1a13 :  Torque actual value         16bit 2B
+        //0x1a1e :  Auxiliary position value    32bit 4B
         uint16 map_1c13[5] = {0x0004, 0x1a00, 0x1a11, 0x1a13, 0x1a1e}; //, 0x1a12};
         //uint16 map_1c13[6] = {0x0005, 0x1a04, 0x1a11, 0x1a12, 0x1a1e, 0X1a1c};
         int os;
         os = sizeof(map_1c12);
-        ec_SDOwrite(slave, 0x1c12, 0, TRUE, os, map_1c12, EC_TIMEOUTRXM);
+        int r = ec_SDOwrite(slave, 0x1c12, 0, TRUE, os, map_1c12, EC_TIMEOUTRXM);
+        if (r < 0)
+            printf("%sELMO %d : unable to write sdo map_1c12 to ecat %d%s\n", cred, args.ecat_device, slave, creset);
         os = sizeof(map_1c13);
-        ec_SDOwrite(slave, 0x1c13, 0, TRUE, os, map_1c13, EC_TIMEOUTRXM);
+        r = ec_SDOwrite(slave, 0x1c13, 0, TRUE, os, map_1c13, EC_TIMEOUTRXM);
+        if (r < 0)
+            printf("%sELMO %d : unable to write sdo map_1c13 to ecat %d%s\n", cred, args.ecat_device, slave, creset);
     }
     /** if CA disable => automapping works */
     printf("ELMO %d : EC CONFIG MAP\n", args.ecat_device);
-    ec_config_map(&IOmap);
+
+    int ecmap = ec_config_map(&IOmap);
+
+    printf("ELMO %d : EC CONFIG MAP RES : %d \n", args.ecat_device, ecmap);
     // ec_config_overlap_map(IOmap);
 
     //ecdc
@@ -886,84 +895,84 @@ bool initTocabiSystem(const TocabiInitArgs &args)
 
     //     /* END USER CODE */
     // }
-    if (args.ecat_device == 0)
-    {
-        uint16 wc, slaveh;
-        uint32 t;
-        uint64 t1;
-        //read the copied system time of local clock
-        t1 = 0;
+    // if (args.ecat_device == 0)
+    // {
+    //     uint16 wc, slaveh;
+    //     uint32 t;
+    //     uint64 t1;
+    //     //read the copied system time of local clock
+    //     t1 = 0;
 
-        for (int i = 1; i <= ec_slavecount; i++)
-        {
-            printf("slave %d delay : %d ns \n", i, ec_slave[i].pdelay);
-        }
+    //     for (int i = 1; i <= ec_slavecount; i++)
+    //     {
+    //         printf("slave %d delay : %d ns \n", i, ec_slave[i].pdelay);
+    //     }
 
-        // for (int i = 1; i <= ec_slavecount; i++)
-        // {
-        //     t1 = 0;
-        //     slaveh = ec_slave[i].configadr;
-        //     wc = ec_FPRD(slaveh, ECT_REG_DCSYSTIME, sizeof(t1), &t1, EC_TIMEOUTRET);
-        //     printf("System time of slave %d : %d\n", i, t1);
-        //     // cerr << "System time of slave " << i << " : " << dec << t1 << endl;
-        // }
+    // for (int i = 1; i <= ec_slavecount; i++)
+    // {
+    //     t1 = 0;
+    //     slaveh = ec_slave[i].configadr;
+    //     wc = ec_FPRD(slaveh, ECT_REG_DCSYSTIME, sizeof(t1), &t1, EC_TIMEOUTRET);
+    //     printf("System time of slave %d : %d\n", i, t1);
+    //     // cerr << "System time of slave " << i << " : " << dec << t1 << endl;
+    // }
 
-        // //read the propagation delay of slaves
-        // t = 0;
-        // for (int i = 1; i <= ec_slavecount; i++)
-        // {
-        //     t = 0;
-        //     slaveh = ec_slave[i].configadr;
-        //     wc = ec_FPRD(slaveh, ECT_REG_DCSYSDELAY, sizeof(t), &t, EC_TIMEOUTRET);
-        //     printf("Delay time of slave %d : %d\n", i, t);
-        //     // cerr << "Delay time of slave " << i << " : " << dec << t << endl;
-        // }
+    // //read the propagation delay of slaves
+    // t = 0;
+    // for (int i = 1; i <= ec_slavecount; i++)
+    // {
+    //     t = 0;
+    //     slaveh = ec_slave[i].configadr;
+    //     wc = ec_FPRD(slaveh, ECT_REG_DCSYSDELAY, sizeof(t), &t, EC_TIMEOUTRET);
+    //     printf("Delay time of slave %d : %d\n", i, t);
+    //     // cerr << "Delay time of slave " << i << " : " << dec << t << endl;
+    // }
 
-        // //read the offset time from reference time to slaves
-        // t1 = 0;
-        // for (int i = 1; i <= ec_slavecount; i++)
-        // {
-        //     t1 = 0;
-        //     slaveh = ec_slave[i].configadr;
-        //     wc = ec_FPRD(slaveh, ECT_REG_DCSYSOFFSET, sizeof(t1), &t1, EC_TIMEOUTRET);
-        //     printf("Offset time of slave %d : %d\n", i, t1);
-        //     // cerr << "Offset time of slave " << i << " : " << dec << t1 << endl;
-        // }
+    // //read the offset time from reference time to slaves
+    // t1 = 0;
+    // for (int i = 1; i <= ec_slavecount; i++)
+    // {
+    //     t1 = 0;
+    //     slaveh = ec_slave[i].configadr;
+    //     wc = ec_FPRD(slaveh, ECT_REG_DCSYSOFFSET, sizeof(t1), &t1, EC_TIMEOUTRET);
+    //     printf("Offset time of slave %d : %d\n", i, t1);
+    //     // cerr << "Offset time of slave " << i << " : " << dec << t1 << endl;
+    // }
 
-        // //read the local clock of slaves
-        // t1 = 0;
-        // for (int i = 1; i <= ec_slavecount; i++)
-        // {
-        //     t1 = 0;
-        //     slaveh = ec_slave[i].configadr;
-        //     wc = ec_FPRD(slaveh, ECT_REG_DCSOF, sizeof(t1), &t1, EC_TIMEOUTRET);
-        //     printf("Local time of slave %d : %d\n", i, t1);
-        //     // cerr << "Local time of slave " << i << " : " << dec << t1 << endl;
-        // }
+    // //read the local clock of slaves
+    // t1 = 0;
+    // for (int i = 1; i <= ec_slavecount; i++)
+    // {
+    //     t1 = 0;
+    //     slaveh = ec_slave[i].configadr;
+    //     wc = ec_FPRD(slaveh, ECT_REG_DCSOF, sizeof(t1), &t1, EC_TIMEOUTRET);
+    //     printf("Local time of slave %d : %d\n", i, t1);
+    //     // cerr << "Local time of slave " << i << " : " << dec << t1 << endl;
+    // }
 
-        // //read the system time difference of slaves
-        // t = 0;
-        // for (int i = 1; i <= ec_slavecount; i++)
-        // {
-        //     t = 0;
-        //     slaveh = ec_slave[i].configadr;
-        //     wc = ec_FPRD(slaveh, ECT_REG_DCSYSDIFF, sizeof(t), &t, EC_TIMEOUTRET);
-        //     printf("System time difference of slave %d : %d\n", i, t);
-        //     // cerr << "System time difference of slave " << i << " : " << dec << t << endl;
-        // }
+    // //read the system time difference of slaves
+    // t = 0;
+    // for (int i = 1; i <= ec_slavecount; i++)
+    // {
+    //     t = 0;
+    //     slaveh = ec_slave[i].configadr;
+    //     wc = ec_FPRD(slaveh, ECT_REG_DCSYSDIFF, sizeof(t), &t, EC_TIMEOUTRET);
+    //     printf("System time difference of slave %d : %d\n", i, t);
+    //     // cerr << "System time difference of slave " << i << " : " << dec << t << endl;
+    // }
 
-        // //read the sync0 cycle start time
-        // t1 = 0;
-        // for (int i = 1; i <= ec_slavecount; i++)
-        // {
-        //     t = 0;
-        //     slaveh = ec_slave[i].configadr;
-        //     wc = ec_FPRD(slaveh, ECT_REG_DCSTART0, sizeof(t1), &t1, EC_TIMEOUTRET);
-        //     printf("next sync0 start time of slave %d : %d\n", i, t1);
+    // //read the sync0 cycle start time
+    // t1 = 0;
+    // for (int i = 1; i <= ec_slavecount; i++)
+    // {
+    //     t = 0;
+    //     slaveh = ec_slave[i].configadr;
+    //     wc = ec_FPRD(slaveh, ECT_REG_DCSTART0, sizeof(t1), &t1, EC_TIMEOUTRET);
+    //     printf("next sync0 start time of slave %d : %d\n", i, t1);
 
-        //     // cerr << "next sync0 start time of slave " << i << " : " << dec << t1 << endl;
-        // }
-    }
+    //     // cerr << "next sync0 start time of slave " << i << " : " << dec << t1 << endl;
+    // }
+    // }
     // void *digout;
 
     // for (int cnt = 1; cnt <= ec_slavecount; cnt++)
@@ -1074,7 +1083,20 @@ bool initTocabiSystem(const TocabiInitArgs &args)
 
     //Commutation Checking
     // st_start_time = std::chrono::steady_clock::now(); // TODO:timespec
-    // printf("ELMO : Initialization Mode\n");
+    printf("%sELMO %d : START Initialization Mode %s\n", cyellow, g_init_args.ecat_device, creset);
+    if(g_init_args.ecat_device == 1)
+    {
+        shm_msgs_->initializeModeUpper = true;
+    }
+    else if(g_init_args.ecat_device == 2)
+    {
+
+        if(!shm_msgs_->initializeModeUpper)
+        {
+            shm_msgs_->shutdown = true;
+        }
+        shm_msgs_->initializeModeLower = true;
+    }
 
     query_check_state = true;
     g_toff = toff;
@@ -1140,6 +1162,7 @@ void *ethercatThread1(void *data)
             ts.tv_sec++;
             ts.tv_nsec -= SEC_IN_NSEC;
         }
+        ec_send_processdata();
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts, NULL);
 
         //std::this_thread::sleep_until(st_start_time + cycle_count * cycletime);
@@ -1149,7 +1172,6 @@ void *ethercatThread1(void *data)
 
         // if ((cycle_count % 2000) == 0)
         //     printf("ELMO %d running \n", g_init_args.ecat_device);
-        ec_send_processdata();
         wkc = ec_receive_processdata(EC_PACKET_TIMEOUT);
 
         control_time_real_ = cycle_count * init_args->period_ns / 1000000000.0;
@@ -1353,50 +1375,103 @@ void *ethercatThread1(void *data)
                 if (elmost[i].commutation_required)
                 {
                     total_commutation_cnt++;
-                    if (total_commutation_cnt < 5)
+                    if (total_commutation_cnt < 8)
                         controlWordGenerate(rxPDO[i]->statusWord, txPDO[i]->controlWord);
-                    txPDO[i]->maxTorque = (uint16)1000; // originaly 1000
+                    txPDO[i]->maxTorque = (uint16)500; // originaly 1000
                 }
             }
         }
 
-        for (int slave = 1; slave <= ec_slavecount; slave++)
+        if (wkc >= expectedWKC)
         {
-            if (!elmost[slave - 1].commutation_required)
+            for (int slave = 1; slave <= ec_slavecount; slave++)
             {
-                if (controlWordGenerate(rxPDO[slave - 1]->statusWord, txPDO[slave - 1]->controlWord))
+                if (!elmost[slave - 1].commutation_required)
                 {
-                    reachedInitial[slave - 1] = true;
-                }
-
-                if (reachedInitial[slave - 1])
-                {
-                    q_elmo_[START_N + slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1];
-                    hommingElmo[START_N + slave - 1] =
-                        (((uint32_t)ec_slave[slave].inputs[6]) & ((uint32_t)1));
-                    q_dot_elmo_[START_N + slave - 1] =
-                        (((int32_t)ec_slave[slave].inputs[10]) +
-                         ((int32_t)ec_slave[slave].inputs[11] << 8) +
-                         ((int32_t)ec_slave[slave].inputs[12] << 16) +
-                         ((int32_t)ec_slave[slave].inputs[13] << 24)) *
-                        CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1];
-                    torque_elmo_[START_N + slave - 1] =
-                        (int16_t)(((int16_t)ec_slave[slave].inputs[14]) +
-                                  ((int16_t)ec_slave[slave].inputs[15] << 8));
-                    q_ext_elmo_[START_N + slave - 1] =
-                        (((int32_t)ec_slave[slave].inputs[16]) +
-                         ((int32_t)ec_slave[slave].inputs[17] << 8) +
-                         ((int32_t)ec_slave[slave].inputs[18] << 16) +
-                         ((int32_t)ec_slave[slave].inputs[19] << 24) - q_ext_mod_elmo_[START_N + slave - 1]) *
-                        EXTCNT2RAD[START_N + slave - 1] * elmo_ext_axis_direction[START_N + slave - 1];
-                    if (START_N + slave == 1 || START_N + slave == 2 || START_N + slave == 7 || START_N + slave == 19 || START_N + slave == 20 || START_N + slave == 16)
+                    if (controlWordGenerate(rxPDO[slave - 1]->statusWord, txPDO[slave - 1]->controlWord))
                     {
-                        hommingElmo[START_N + slave - 1] = !hommingElmo[START_N + slave - 1];
+                        reachedInitial[slave - 1] = true;
                     }
-                    txPDO[slave - 1]->maxTorque = (uint16)500; // originaly 1000
+                    if (reachedInitial[slave - 1])
+                    {
+                        q_elmo_[START_N + slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1] - q_zero_elmo_[START_N + slave - 1];
+
+                        hommingElmo[START_N + slave - 1] =
+                            (((uint32_t)ec_slave[slave].inputs[6]) & ((uint32_t)1));
+                        q_dot_elmo_[START_N + slave - 1] =
+                            (((int32_t)ec_slave[slave].inputs[10]) +
+                             ((int32_t)ec_slave[slave].inputs[11] << 8) +
+                             ((int32_t)ec_slave[slave].inputs[12] << 16) +
+                             ((int32_t)ec_slave[slave].inputs[13] << 24)) *
+                            CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1];
+                        torque_elmo_[START_N + slave - 1] =
+                            (int16_t)(((int16_t)ec_slave[slave].inputs[14]) +
+                                      ((int16_t)ec_slave[slave].inputs[15] << 8));
+                        q_ext_elmo_[START_N + slave - 1] =
+                            (((int32_t)ec_slave[slave].inputs[16]) +
+                             ((int32_t)ec_slave[slave].inputs[17] << 8) +
+                             ((int32_t)ec_slave[slave].inputs[18] << 16) +
+                             ((int32_t)ec_slave[slave].inputs[19] << 24) - q_ext_mod_elmo_[START_N + slave - 1]) *
+                            EXTCNT2RAD[START_N + slave - 1] * elmo_ext_axis_direction[START_N + slave - 1];
+                        // st_register[START_N + slave - 1] =
+                        //     ((uint32_t)ec_slave[slave].inputs[20]) +
+                        //      ((uint32_t)ec_slave[slave].inputs[21] << 8) +
+                        //      ((uint32_t)ec_slave[slave].inputs[22] << 16) +
+                        //      ((uint32_t)ec_slave[slave].inputs[23] << 24);
+                        if (START_N + slave == 1 || START_N + slave == 2 || START_N + slave == 7 || START_N + slave == 19 || START_N + slave == 20 || START_N + slave == 16)
+                        {
+                            hommingElmo[START_N + slave - 1] = !hommingElmo[START_N + slave - 1];
+                        }
+                        txPDO[slave - 1]->maxTorque = (uint16)500; // originaly 1000
+                    }
                 }
             }
         }
+
+        // for (int slave = 1; slave <= ec_slavecount; slave++)
+        // {
+        //     // if (!elmost[slave - 1].commutation_required)
+        //     // {
+        //         if (controlWordGenerate(rxPDO[slave - 1]->statusWord, txPDO[slave - 1]->controlWord))
+        //         {
+        //             reachedInitial[slave - 1] = true;
+        //         }
+        //     // }
+
+        //     if (reachedInitial[slave - 1])
+        //     {
+        //         q_elmo_[START_N + slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1];
+        //         hommingElmo[START_N + slave - 1] =
+        //             (((uint32_t)ec_slave[slave].inputs[6]) & ((uint32_t)1));
+        //         q_dot_elmo_[START_N + slave - 1] =
+        //             (((int32_t)ec_slave[slave].inputs[10]) +
+        //              ((int32_t)ec_slave[slave].inputs[11] << 8) +
+        //              ((int32_t)ec_slave[slave].inputs[12] << 16) +
+        //              ((int32_t)ec_slave[slave].inputs[13] << 24)) *
+        //             CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1];
+        //         torque_elmo_[START_N + slave - 1] =
+        //             (int16_t)(((int16_t)ec_slave[slave].inputs[14]) +
+        //                       ((int16_t)ec_slave[slave].inputs[15] << 8));
+        //         q_ext_elmo_[START_N + slave - 1] =
+        //             (((int32_t)ec_slave[slave].inputs[16]) +
+        //              ((int32_t)ec_slave[slave].inputs[17] << 8) +
+        //              ((int32_t)ec_slave[slave].inputs[18] << 16) +
+        //              ((int32_t)ec_slave[slave].inputs[19] << 24) - q_ext_mod_elmo_[START_N + slave - 1]) *
+        //             EXTCNT2RAD[START_N + slave - 1] * elmo_ext_axis_direction[START_N + slave - 1];
+        //         // st_register[START_N + slave - 1] =
+        //         //     ((uint32_t)ec_slave[slave].inputs[20]) +
+        //         //      ((uint32_t)ec_slave[slave].inputs[21] << 8) +
+        //         //      ((uint32_t)ec_slave[slave].inputs[22] << 16) +
+        //         //      ((uint32_t)ec_slave[slave].inputs[23] << 24);
+
+        //         if (START_N + slave == 1 || START_N + slave == 2 || START_N + slave == 7 || START_N + slave == 19 || START_N + slave == 20 || START_N + slave == 16)
+        //         {
+        //             hommingElmo[START_N + slave - 1] = !hommingElmo[START_N + slave - 1];
+        //         }
+        //         txPDO[slave - 1]->maxTorque = (uint16)100; // originaly 1000
+        //     }
+        // }
+
         for (int i = 0; i < ec_slavecount; i++)
         {
             q_[JointMap2[START_N + i]] = q_elmo_[START_N + i];
@@ -1596,6 +1671,8 @@ void *ethercatThread1(void *data)
             }
             else if (ElmoMode[START_N + i] == EM_COMMUTATION)
             {
+                txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousTorquemode;
+                txPDO[i]->targetTorque = (int)0;
             }
             else
             {
@@ -1880,6 +1957,11 @@ void *ethercatThread1(void *data)
                          ((int32_t)ec_slave[slave].inputs[18] << 16) +
                          ((int32_t)ec_slave[slave].inputs[19] << 24) - q_ext_mod_elmo_[START_N + slave - 1]) *
                         EXTCNT2RAD[START_N + slave - 1] * elmo_ext_axis_direction[START_N + slave - 1];
+                    // st_register[START_N + slave - 1] =
+                    //     ((uint32_t)ec_slave[slave].inputs[20]) +
+                    //      ((uint32_t)ec_slave[slave].inputs[21] << 8) +
+                    //      ((uint32_t)ec_slave[slave].inputs[22] << 16) +
+                    //      ((uint32_t)ec_slave[slave].inputs[23] << 24);
                     if (START_N + slave == 1 || START_N + slave == 2 || START_N + slave == 7 || START_N + slave == 19 || START_N + slave == 20 || START_N + slave == 16)
                     {
                         hommingElmo[START_N + slave - 1] = !hommingElmo[START_N + slave - 1];
@@ -2149,7 +2231,22 @@ void *ethercatThread2(void *data)
         {
             for (int slave = 1; slave <= ec_slavecount; slave++)
             {
-                checkFault(rxPDO[slave - 1]->statusWord, slave);
+                //checkFault(rxPDO[slave - 1]->statusWord, slave);
+            }
+
+            if (thread2_cnt % 4 == 0)
+            {
+                ethercatCheck(init_args);
+            }
+
+            if (thread2_cnt % 1000 == 0)
+            {
+                if (diag_switch)
+                    ecatDiagnose();
+                else
+                {
+                    ecatDiagnoseOnChange();
+                }
             }
         }
 
@@ -2167,21 +2264,6 @@ void *ethercatThread2(void *data)
 
         //     rcv_cnt_t2 = rcv_cnt;
         // }
-
-        if (thread2_cnt % 4 == 0)
-        {
-            ethercatCheck(init_args);
-        }
-
-        if (thread2_cnt % 1000 == 0)
-        {
-            if (diag_switch)
-                ecatDiagnose();
-            else
-            {
-                ecatDiagnoseOnChange();
-            }
-        }
     }
 
     // std::printf("ELMO : EthercatThread2 Shutdown\n");
@@ -2225,6 +2307,8 @@ void *ethercatThread3(void *data)
                 start_observe = true;
                 printf("BOTH ECAT ACTIVATED! START WATCHDOG, UL DIFF : %d\n", UPLOW_diff);
             }
+
+            clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_timeout2, NULL);
         }
         else
         {
@@ -2286,11 +2370,13 @@ void *ethercatThread3(void *data)
                     printCount = 0;
                     if (init_args->ecat_device == 1)
                     {
-                        printf("ELMO 1 : watchdog count : %d, com2 count : %d up&low diff : %d \n", checkCount, (int)shm_msgs_->statusCount2, UPLOW_diff);
+                        // printf("ELMO 1 : watchdog count : %d, com2 count : %d up&low diff : %d %u\n", checkCount, (int)shm_msgs_->statusCount2, UPLOW_diff, st_register[START_N + 0]);
+                        printf("ELMO 1 : watchdog count : %d, com2 count : %d up&low diff : %d\n", checkCount, (int)shm_msgs_->statusCount2, UPLOW_diff);
                     }
                     else if (init_args->ecat_device == 2)
                     {
-                        printf("ELMO 2 : watchdog count : %d, com1 count : %d up&low diff : %d \n", checkCount, (int)shm_msgs_->statusCount, UPLOW_diff);
+                        // printf("ELMO 2 : watchdog count : %d, com1 count : %d up&low diff : %d %u\n", checkCount, (int)shm_msgs_->statusCount, UPLOW_diff, st_register[START_N + 0]);
+                        printf("ELMO 2 : watchdog count : %d, com1 count : %d up&low diff : %d\n", checkCount, (int)shm_msgs_->statusCount, UPLOW_diff);
                     }
                 }
             }
@@ -2370,7 +2456,9 @@ void *ethercatThread3(void *data)
                     // for (int i = 0; i < ec_slavecount; i++)
                     // {
                     //     printf("%4d   %20s  %16d\n", i, ELMO_NAME[START_N + i], std::bitset<16>(rxPDO[i]->statusWord));
-                    // }diag_switc
+                    // }
+
+                    // diag_switc
                     diag_switch = !diag_switch;
                 }
                 else if ((ch % 256 == 'd'))

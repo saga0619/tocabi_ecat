@@ -96,7 +96,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    printf("[ECAT - INFO] init process has been done\n");
+    // printf("[ECAT - INFO] init process has been done\n");
     /* Create a pthread with specified attributes */
 
     ret = pthread_create(&thread1, &attr, ethercatThread1, &init_args);
