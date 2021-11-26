@@ -17,9 +17,11 @@ int main(int argc, char **argv)
     init_args.lock_core = 6;
     init_args.ecat_device = 2;
     init_args.is_main = false;
-    init_args.verbose = true;
+    init_args.verbose = false;
+
     strcpy(init_args.commutation_cache_file, "/home/dyros/.tocabi_bootlog/commutationlog_lower");
     strcpy(init_args.zeropoint_cache_file, "/home/dyros/.tocabi_bootlog/zeropointlog_lower");
+
     int max_jnum = 33;
     for (int i = 0; i < init_args.ecat_slave_num; i++)
     {
@@ -31,11 +33,19 @@ int main(int argc, char **argv)
     init_args.q_start_ = max_jnum;
 
 
-    struct sched_param param;
+    struct sched_param param, param2;
     pthread_attr_t attr, attr2;
     pthread_t thread1, thread2, thread3;
     int ret;
 
+    initTocabiArgs(init_args);
+
+    bool init_result = initTocabiSystem(init_args);
+    if (!init_result)
+    {
+        printf("[ECAT - ERRO] init failed\n");
+        return -1;
+    }
     // printf("[ECAT - INFO] start main threadsm\n");
     /* Initialize pthread attributes (default values) */
     ret = pthread_attr_init(&attr);
@@ -59,8 +69,22 @@ int main(int argc, char **argv)
         printf("pthread setschedpolicy failed\n");
         return ret;
     }
-    param.sched_priority = 95;
+    param.sched_priority = 93;
     ret = pthread_attr_setschedparam(&attr, &param);
+    if (ret)
+    {
+        printf("pthread setschedparam failed\n");
+        return ret;
+    }
+
+    ret = pthread_attr_setschedpolicy(&attr2, SCHED_FIFO);
+    if (ret)
+    {
+        printf("pthread setschedpolicy failed\n");
+        return ret;
+    }
+    param2.sched_priority = 89;
+    ret = pthread_attr_setschedparam(&attr2, &param2);
     if (ret)
     {
         printf("pthread setschedparam failed\n");
@@ -77,9 +101,25 @@ int main(int argc, char **argv)
         printf("pthread setaffinity failed\n");
         return ret;
     }
+    cpu_set_t cpuset2;
+    CPU_ZERO(&cpuset2);
+    CPU_SET(7, &cpuset2);
 
+    ret = pthread_attr_setaffinity_np(&attr2, sizeof(cpuset2), &cpuset2);
+    if (ret)
+    {
+        printf("pthread setaffinity failed\n");
+        return ret;
+    }
     /* Use scheduling parameters of attr */
     ret = pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+    if (ret)
+    {
+        printf("pthread setinheritsched failed\n");
+        return ret;
+    }    
+
+    ret = pthread_attr_setinheritsched(&attr2, PTHREAD_EXPLICIT_SCHED);
     if (ret)
     {
         printf("pthread setinheritsched failed\n");
@@ -87,13 +127,6 @@ int main(int argc, char **argv)
     }
 
     // printf("[ECAT - INFO] start init process\n");
-    initTocabiArgs(init_args);
-    bool init_result = initTocabiSystem(init_args);
-    if (!init_result)
-    {
-        printf("[ECAT - ERRO] init failed\n");
-        return -1;
-    }
 
     // printf("[ECAT - INFO] init process has been done\n");
 

@@ -322,6 +322,8 @@ void ecatDiagnoseOnChange()
 
     static uint8 process_unit_error_p[ELMO_DOF];
 
+    static bool ecatDiagnoseCnt = false;
+
     // uint8 link_lost3[ELMO_DOF]; //link lost counter
     // uint8 link_lost4[ELMO_DOF];
 
@@ -360,112 +362,155 @@ void ecatDiagnoseOnChange()
     }
 
     bool link_lost_b = false;
+    int ll_p1 = -1;
+    int ll_p2 = -1;
     bool crc_error_b = false;
+    int cr_p1 = -1;
+    int cr_p2 = -1;
     bool rx_error_b = false;
+    int re_p1 = -1;
+    int re_p2 = -1;
     bool frd_error_b = false;
     bool process_unit_error_b = false;
 
-    for (int i = 0; i < ec_slavecount; i++)
+    if (ecatDiagnoseCnt)
     {
-        if (link_lost1_p[i] != link_lost1[i])
-            link_lost_b = true;
-        if (link_lost2_p[i] != link_lost2[i])
-            link_lost_b = true;
 
-        if (fe_lost1_p[i] != fe_lost1[i])
-            crc_error_b = true;
-        if (fe_lost2_p[i] != fe_lost2[i])
-            crc_error_b = true;
+        for (int i = 0; i < ec_slavecount; i++)
+        {
+            if (link_lost1_p[i] != link_lost1[i])
+            {
+                printf("ECAT %d : Link Lost Event At slave %d port 0! \n", g_init_args.ecat_device, i);
+                link_lost_b = true;
+                ll_p1 = i;
+            }
+            if (link_lost2_p[i] != link_lost2[i])
+            {
+                printf("ECAT %d : Link Lost Event At slave %d port 1! \n", g_init_args.ecat_device, i);
+                link_lost_b = true;
+                ll_p2 = i;
+            }
 
-        if (ple_lost1_p[i] != ple_lost1[i])
-            rx_error_b = true;
-        if (ple_lost2_p[i] != ple_lost2[i])
-            rx_error_b = true;
+            if (fe_lost1_p[i] != fe_lost1[i])
+            {
+                printf("ECAT %d : CRC ERROR Event At slave %d port 0! \n", g_init_args.ecat_device, i);
+                crc_error_b = true;
+            }
+            if (fe_lost2_p[i] != fe_lost2[i])
+            {
+                printf("ECAT %d : CRC ERROR Event! At slave %d port 1! \n", g_init_args.ecat_device, i);
+                crc_error_b = true;
+            }
 
-        if (fre_lost1_p[i] != fre_lost1[i])
-            frd_error_b = true;
-        if (fre_lost2_p[i] != fre_lost2[i])
-            frd_error_b = true;
+            if (ple_lost1_p[i] != ple_lost1[i])
+            {
+                printf("ECAT %d : RX Error Event! At slave %d port 0! \n", g_init_args.ecat_device, i);
+                rx_error_b = true;
+            }
+            if (ple_lost2_p[i] != ple_lost2[i])
+            {
+                printf("ECAT %d : RX Error Event! At slave %d port 1! \n", g_init_args.ecat_device, i);
 
-        if (process_unit_error_p[i] != process_unit_error[i])
-            process_unit_error_b = true;
+                rx_error_b = true;
+            }
+
+            if (fre_lost1_p[i] != fre_lost1[i])
+            {
+                frd_error_b = true;
+                printf("ECAT %d : Forwarded Error Event! At slave %d port 0! \n", g_init_args.ecat_device, i);
+            }
+            if (fre_lost2_p[i] != fre_lost2[i])
+            {
+                frd_error_b = true;
+                printf("ECAT %d : Forwarded Error Event! At slave %d port 1! \n", g_init_args.ecat_device, i);
+            }
+
+            if (process_unit_error_p[i] != process_unit_error[i])
+            {
+                printf("ECAT %d : EPU Error Event! At slave %d! \n", g_init_args.ecat_device, i);
+                process_unit_error_b = true;
+            }
+        }
     }
 
-    if (link_lost_b)
+    if (g_init_args.verbose)
     {
-        printf("ECAT %d : Link Lost Event! \n", g_init_args.ecat_device);
-        printf("Link Lost Cnt 0 : \t");
-        for (int i = 0; i < ec_slavecount; i++)
+        if (link_lost_b)
         {
-            cnt_print(link_lost1[i]);
-        }
-        printf("\nLink Lost Cnt 1 : \t");
-        for (int i = 0; i < ec_slavecount; i++)
-        {
-            cnt_print(link_lost2[i]);
-        }
-        printf("\n\n");
-    }
-
-    if (crc_error_b)
-    {
-        printf("ECAT %d : CRC ERROR Event! \n", g_init_args.ecat_device);
-        printf("  CRC Err Cnt 0 : \t");
-        for (int i = 0; i < ec_slavecount; i++)
-        {
-            cnt_print(fe_lost1[i]);
-        }
-        printf("\n  CRC Err Cnt 1 : \t");
-        for (int i = 0; i < ec_slavecount; i++)
-        {
-            cnt_print(fe_lost2[i]);
-        }
-        printf("\n\n");
-    }
-
-    if (frd_error_b)
-    {
-
-        printf("ECAT %d : Forwarded Error Event! \n", g_init_args.ecat_device);
-        printf(" Forw Err Cnt 0 : \t");
-        for (int i = 0; i < ec_slavecount; i++)
-        {
-            cnt_print(fre_lost1[i]);
+            // printf("ECAT %d : Link Lost Event! \n", g_init_args.ecat_device);
+            printf("Link Lost Cnt 0 : \t");
+            for (int i = 0; i < ec_slavecount; i++)
+            {
+                cnt_print(link_lost1[i]);
+            }
+            printf("\nLink Lost Cnt 1 : \t");
+            for (int i = 0; i < ec_slavecount; i++)
+            {
+                cnt_print(link_lost2[i]);
+            }
+            printf("\n\n");
         }
 
-        printf("\n Forw Err Cnt 1 : \t");
-        for (int i = 0; i < ec_slavecount; i++)
+        if (crc_error_b)
         {
-            cnt_print(fre_lost2[i]);
+            // printf("ECAT %d : CRC ERROR Event! \n", g_init_args.ecat_device);
+            printf("  CRC Err Cnt 0 : \t");
+            for (int i = 0; i < ec_slavecount; i++)
+            {
+                cnt_print(fe_lost1[i]);
+            }
+            printf("\n  CRC Err Cnt 1 : \t");
+            for (int i = 0; i < ec_slavecount; i++)
+            {
+                cnt_print(fe_lost2[i]);
+            }
+            printf("\n\n");
         }
-        printf("\n\n");
-    }
 
-    if (rx_error_b)
-    {
-        printf("ECAT %d : RX Error Event! \n", g_init_args.ecat_device);
-        printf("   RX Err Cnt 0 : \t");
-        for (int i = 0; i < ec_slavecount; i++)
+        if (frd_error_b)
         {
-            cnt_print(ple_lost1[i]);
-        }
-        printf("\n   RX Err Cnt 1 : \t");
-        for (int i = 0; i < ec_slavecount; i++)
-        {
-            cnt_print(ple_lost2[i]);
-        }
-        printf("\n\n");
-    }
 
-    if (process_unit_error_b)
-    {
-        printf("ECAT %d : EPU Error Event! \n", g_init_args.ecat_device);
-        printf("    EPU Err Cnt : \t");
-        for (int i = 0; i < ec_slavecount; i++)
-        {
-            cnt_print(process_unit_error[i]);
+            // printf("ECAT %d : Forwarded Error Event! \n", g_init_args.ecat_device);
+            printf(" Forw Err Cnt 0 : \t");
+            for (int i = 0; i < ec_slavecount; i++)
+            {
+                cnt_print(fre_lost1[i]);
+            }
+
+            printf("\n Forw Err Cnt 1 : \t");
+            for (int i = 0; i < ec_slavecount; i++)
+            {
+                cnt_print(fre_lost2[i]);
+            }
+            printf("\n\n");
         }
-        printf("\n\n");
+
+        if (rx_error_b)
+        {
+            // printf("ECAT %d : RX Error Event! \n", g_init_args.ecat_device);
+            printf("   RX Err Cnt 0 : \t");
+            for (int i = 0; i < ec_slavecount; i++)
+            {
+                cnt_print(ple_lost1[i]);
+            }
+            printf("\n   RX Err Cnt 1 : \t");
+            for (int i = 0; i < ec_slavecount; i++)
+            {
+                cnt_print(ple_lost2[i]);
+            }
+            printf("\n\n");
+        }
+
+        if (process_unit_error_b)
+        {
+            // printf("ECAT %d : EPU Error Event! \n", g_init_args.ecat_device);
+            printf("    EPU Err Cnt : \t");
+            for (int i = 0; i < ec_slavecount; i++)
+            {
+                cnt_print(process_unit_error[i]);
+            }
+            printf("\n\n");
+        }
     }
 
     for (int i = 0; i < ec_slavecount; i++)
@@ -484,6 +529,8 @@ void ecatDiagnoseOnChange()
 
         process_unit_error_p[i] = process_unit_error[i];
     }
+
+    ecatDiagnoseCnt = true;
 }
 
 void ecatDiagnose()
@@ -776,6 +823,7 @@ bool initTocabiArgs(const TocabiInitArgs &args)
     START_N = args.ecat_slave_start_num;
 
     init_shm(shm_msg_key, shm_id_, &shm_msgs_);
+    elmoInit();
 
     // shm_msgs_->shutdown = false;
     if (shm_msgs_->shutdown == true)
@@ -783,6 +831,13 @@ bool initTocabiArgs(const TocabiInitArgs &args)
 
         printf("ELMO %d : shm reset\n", args.ecat_device);
     }
+    // if (args.ecat_device == 2)
+    // {
+    //     while (!shm_msgs_->initializeModeUpper) //If device is Lower, Wait for Upper device Initialization
+    //     {
+    //         usleep(10000);
+    //     }
+    // }
 
     g_init_args = args;
 
@@ -803,17 +858,17 @@ bool initTocabiSystem(const TocabiInitArgs &args)
         printf("ELMO %d : No socket connection on %s / %s \nExcecute as root\n", args.ecat_device, args.port1, args.port2);
         return false;
     }
-    printf("ELMO %d : ec_init on %s %s succeeded.\n", args.ecat_device, args.port1, args.port2);
+
+    if (args.ecat_device == 0)
+        printf("ELMO %d : ec_init on %s %s succeeded.\n", args.ecat_device, args.port1, args.port2);
 
     if (ec_config_init(FALSE) <= 0) // TRUE when using configtable to init slavtes, FALSE oherwise
     {
         printf("%sELMO : No slaves found!%s\n", cred, creset);
         return false;
     }
-
-    elmoInit();
-
-    printf("ELMO %d : %d / %d slaves found and configured.\n", args.ecat_device, ec_slavecount, args.ecat_slave_num); // ec_slavecount -> slave num
+    if (args.ecat_device == 0)
+        printf("ELMO %d : %d / %d slaves found and configured.\n", args.ecat_device, ec_slavecount, args.ecat_slave_num); // ec_slavecount -> slave num
 
     if (ec_slavecount == args.ecat_slave_num)
     {
@@ -821,6 +876,7 @@ bool initTocabiSystem(const TocabiInitArgs &args)
     }
     else
     {
+        printf("ELMO %d : %d / %d slaves found and configured.\n", args.ecat_device, ec_slavecount, args.ecat_slave_num); // ec_slavecount -> slave num
         // std::cout << cred << "WARNING : SLAVE NUMBER INSUFFICIENT" << creset << '\n';
         shm_msgs_->shutdown = true;
         return false;
@@ -835,6 +891,19 @@ bool initTocabiSystem(const TocabiInitArgs &args)
         }
         ec_slave[slave].CoEdetails ^= ECT_COEDET_SDOCA;
     }
+
+    return true;
+}
+
+void cleanupTocabiSystem()
+{
+    deleteSharedMemory(shm_id_, shm_msgs_);
+}
+
+void *ethercatThread1(void *data)
+{
+
+    TocabiInitArgs *init_args = (TocabiInitArgs *)data;
 
     for (int slave = 1; slave <= ec_slavecount; slave++)
     {
@@ -857,144 +926,44 @@ bool initTocabiSystem(const TocabiInitArgs &args)
         os = sizeof(map_1c12);
         int r = ec_SDOwrite(slave, 0x1c12, 0, TRUE, os, map_1c12, EC_TIMEOUTRXM);
         if (r < 0)
-            printf("%sELMO %d : unable to write sdo map_1c12 to ecat %d%s\n", cred, args.ecat_device, slave, creset);
+            printf("%sELMO %d : unable to write sdo map_1c12 to ecat %d%s\n", cred, init_args->ecat_device, slave, creset);
         os = sizeof(map_1c13);
         r = ec_SDOwrite(slave, 0x1c13, 0, TRUE, os, map_1c13, EC_TIMEOUTRXM);
         if (r < 0)
-            printf("%sELMO %d : unable to write sdo map_1c13 to ecat %d%s\n", cred, args.ecat_device, slave, creset);
+            printf("%sELMO %d : unable to write sdo map_1c13 to ecat %d%s\n", cred, init_args->ecat_device, slave, creset);
     }
     /** if CA disable => automapping works */
-    printf("ELMO %d : EC CONFIG MAP\n", args.ecat_device);
+
+    if (init_args->verbose)
+        printf("ELMO %d : EC CONFIG MAP\n", init_args->ecat_device);
 
     int ecmap = ec_config_map(&IOmap);
 
-    printf("ELMO %d : EC CONFIG MAP RES : %d \n", args.ecat_device, ecmap);
+    // printf("ELMO %d : EC CONFIG MAP RES : %d IOmap Size : %d \n", init_args->ecat_device, ecmap, sizeof(IOmap));
     // ec_config_overlap_map(IOmap);
 
     //ecdc
 #ifdef ECAT_DC
-    printf("ELMO %d : EC CONFIG DC\n", args.ecat_device);
+    printf("ELMO %d : EC CONFIG DC\n", init_args.ecat_device);
     ec_configdc();
 
     for (int i = 0; i < ec_slavecount; i++)
-        ec_dcsync0(i + 1, TRUE, (uint32)args.period_ns, 0);
+        ec_dcsync0(i + 1, TRUE, (uint32)init_args.period_ns, 0);
 
 #endif
     while (EcatError)
         printf("%s\n", ec_elist2string());
-    printf("ELMO %d : EC WAITING STATE TO SAFE_OP\n", args.ecat_device);
+
+    if (init_args->verbose)
+        printf("ELMO %d : EC WAITING STATE TO SAFE_OP\n", init_args->ecat_device);
     ec_statecheck(0, EC_STATE_SAFE_OP, EC_TIMEOUTSTATE * 4);
     ec_readstate();
-    // for (int cnt = 1; cnt <= ec_slavecount; cnt++)
-    // {
-    //     /* BEGIN USER CODE */
-
-    //     printf("Slave:%d Name:%s Output size:%3dbits Input size:%3dbits State:%2d delay:%d.%d\n",
-    //            cnt, ec_slave[cnt].name, ec_slave[cnt].Obits, ec_slave[cnt].Ibits,
-    //            ec_slave[cnt].state, (int)ec_slave[cnt].pdelay, ec_slave[cnt].hasdc);
-
-    //     /* END USER CODE */
-    // }
-    // if (args.ecat_device == 0)
-    // {
-    //     uint16 wc, slaveh;
-    //     uint32 t;
-    //     uint64 t1;
-    //     //read the copied system time of local clock
-    //     t1 = 0;
-
-    //     for (int i = 1; i <= ec_slavecount; i++)
-    //     {
-    //         printf("slave %d delay : %d ns \n", i, ec_slave[i].pdelay);
-    //     }
-
-    // for (int i = 1; i <= ec_slavecount; i++)
-    // {
-    //     t1 = 0;
-    //     slaveh = ec_slave[i].configadr;
-    //     wc = ec_FPRD(slaveh, ECT_REG_DCSYSTIME, sizeof(t1), &t1, EC_TIMEOUTRET);
-    //     printf("System time of slave %d : %d\n", i, t1);
-    //     // cerr << "System time of slave " << i << " : " << dec << t1 << endl;
-    // }
-
-    // //read the propagation delay of slaves
-    // t = 0;
-    // for (int i = 1; i <= ec_slavecount; i++)
-    // {
-    //     t = 0;
-    //     slaveh = ec_slave[i].configadr;
-    //     wc = ec_FPRD(slaveh, ECT_REG_DCSYSDELAY, sizeof(t), &t, EC_TIMEOUTRET);
-    //     printf("Delay time of slave %d : %d\n", i, t);
-    //     // cerr << "Delay time of slave " << i << " : " << dec << t << endl;
-    // }
-
-    // //read the offset time from reference time to slaves
-    // t1 = 0;
-    // for (int i = 1; i <= ec_slavecount; i++)
-    // {
-    //     t1 = 0;
-    //     slaveh = ec_slave[i].configadr;
-    //     wc = ec_FPRD(slaveh, ECT_REG_DCSYSOFFSET, sizeof(t1), &t1, EC_TIMEOUTRET);
-    //     printf("Offset time of slave %d : %d\n", i, t1);
-    //     // cerr << "Offset time of slave " << i << " : " << dec << t1 << endl;
-    // }
-
-    // //read the local clock of slaves
-    // t1 = 0;
-    // for (int i = 1; i <= ec_slavecount; i++)
-    // {
-    //     t1 = 0;
-    //     slaveh = ec_slave[i].configadr;
-    //     wc = ec_FPRD(slaveh, ECT_REG_DCSOF, sizeof(t1), &t1, EC_TIMEOUTRET);
-    //     printf("Local time of slave %d : %d\n", i, t1);
-    //     // cerr << "Local time of slave " << i << " : " << dec << t1 << endl;
-    // }
-
-    // //read the system time difference of slaves
-    // t = 0;
-    // for (int i = 1; i <= ec_slavecount; i++)
-    // {
-    //     t = 0;
-    //     slaveh = ec_slave[i].configadr;
-    //     wc = ec_FPRD(slaveh, ECT_REG_DCSYSDIFF, sizeof(t), &t, EC_TIMEOUTRET);
-    //     printf("System time difference of slave %d : %d\n", i, t);
-    //     // cerr << "System time difference of slave " << i << " : " << dec << t << endl;
-    // }
-
-    // //read the sync0 cycle start time
-    // t1 = 0;
-    // for (int i = 1; i <= ec_slavecount; i++)
-    // {
-    //     t = 0;
-    //     slaveh = ec_slave[i].configadr;
-    //     wc = ec_FPRD(slaveh, ECT_REG_DCSTART0, sizeof(t1), &t1, EC_TIMEOUTRET);
-    //     printf("next sync0 start time of slave %d : %d\n", i, t1);
-
-    //     // cerr << "next sync0 start time of slave " << i << " : " << dec << t1 << endl;
-    // }
-    // }
-    // void *digout;
-
-    // for (int cnt = 1; cnt <= ec_slavecount; cnt++)
-    // {
-    //     printf("Slave:%d Name:%s Output size:%3dbits Input size:%3dbits State:%2d delay:%d.%d\n",
-    //            cnt, ec_slave[cnt].name, ec_slave[cnt].Obits, ec_slave[cnt].Ibits,
-    //            ec_slave[cnt].state, (int)ec_slave[cnt].pdelay, ec_slave[cnt].hasdc);
-    //     printf("         Out:%8.8x,%4d In:%8.8x,%4d\n",
-    //            (int *)ec_slave[cnt].outputs, ec_slave[cnt].Obytes, (int *)ec_slave[cnt].inputs, ec_slave[cnt].Ibytes);
-    //     /* check for EL2004 or EL2008 */
-    //     if (!digout && ((ec_slave[cnt].eep_id == 0x07d43052) || (ec_slave[cnt].eep_id == 0x07d83052)))
-    //     {
-    //         digout = ec_slave[cnt].outputs;
-    //     }
-    // }
-
     /* wait for all slaves to reach SAFE_OP state */
-
     expectedWKC = (ec_group[0].outputsWKC * 2) + ec_group[0].inputsWKC;
-    printf("ELMO %d : Request operational state for all slaves. Calculated workcounter : %d\n", args.ecat_device, expectedWKC);
+    if (init_args->verbose)
+        printf("ELMO %d : Request operational state for all slaves. Calculated workcounter : %d\n", init_args->ecat_device, expectedWKC);
 
-    if (expectedWKC != 3 * args.ecat_slave_num)
+    if (expectedWKC != 3 * init_args->ecat_slave_num)
     {
         // std::cout << cred << "WARNING : Calculated Workcounter insufficient!" << creset << '\n';
         ecat_WKC_ok = true;
@@ -1029,18 +998,18 @@ bool initTocabiSystem(const TocabiInitArgs &args)
 
     if (ec_slave[0].state != EC_STATE_OPERATIONAL)
     {
-        printf("%sELMO %d : Not all slaves reached operational state.%s\n", cred, args.ecat_device, creset);
+        printf("%sELMO %d : Not all slaves reached operational state.%s\n", cred, init_args->ecat_device, creset);
         ec_readstate();
         for (int slave = 1; slave <= ec_slavecount; slave++)
         {
             if (ec_slave[slave - 1].state != EC_STATE_OPERATIONAL)
             {
                 printf("%sELMO %d : EtherCAT State Operation Error : Slave %d State=0x%2.2x StatusCode=0x%4.4x : %s%s\n",
-                       cred, args.ecat_device, slave - 1, ec_slave[slave - 1].state, ec_slave[slave - 1].ALstatuscode,
+                       cred, init_args->ecat_device, slave - 1, ec_slave[slave - 1].state, ec_slave[slave - 1].ALstatuscode,
                        ec_ALstatuscode2string(ec_slave[slave - 1].ALstatuscode), creset);
             }
         }
-        return false;
+        shm_msgs_->shutdown = true;
     }
     for (int slave = 1; slave <= ec_slavecount; slave++)
     {
@@ -1049,8 +1018,8 @@ bool initTocabiSystem(const TocabiInitArgs &args)
     }
 
     inOP = TRUE;
-    const int PRNS = args.period_ns;
-    period_ns = args.period_ns;
+    const int PRNS = init_args->period_ns;
+    period_ns = init_args->period_ns;
 
     // //ecdc
     struct timespec ts;
@@ -1084,17 +1053,12 @@ bool initTocabiSystem(const TocabiInitArgs &args)
     //Commutation Checking
     // st_start_time = std::chrono::steady_clock::now(); // TODO:timespec
     printf("%sELMO %d : START Initialization Mode %s\n", cyellow, g_init_args.ecat_device, creset);
-    if(g_init_args.ecat_device == 1)
+    if (g_init_args.ecat_device == 1)
     {
         shm_msgs_->initializeModeUpper = true;
     }
-    else if(g_init_args.ecat_device == 2)
+    else if (g_init_args.ecat_device == 2)
     {
-
-        if(!shm_msgs_->initializeModeUpper)
-        {
-            shm_msgs_->shutdown = true;
-        }
         shm_msgs_->initializeModeLower = true;
     }
 
@@ -1106,28 +1070,16 @@ bool initTocabiSystem(const TocabiInitArgs &args)
     g_cur_DCtime = cur_DCtime;
     g_PRNS = PRNS;
     g_ts = ts;
-    return true;
-}
 
-void cleanupTocabiSystem()
-{
-    deleteSharedMemory(shm_id_, shm_msgs_);
-}
+    // int64 toff = 0;
+    // unsigned long long cur_dc32 = g_cur_dc32;
+    // unsigned long long pre_dc32 = g_pre_dc32;
+    // long long diff_dc32 = g_diff_dc32;
+    // long long cur_DCtime = g_cur_dc32, max_DCtime = g_max_DCtime;
+    // int PRNS = g_PRNS;
+    // struct timespec ts;
 
-void *ethercatThread1(void *data)
-{
-
-    TocabiInitArgs *init_args = (TocabiInitArgs *)data;
-    int64 toff = 0;
-    unsigned long long cur_dc32 = g_cur_dc32;
-    unsigned long long pre_dc32 = g_pre_dc32;
-    long long diff_dc32 = g_diff_dc32;
-    long long cur_DCtime = g_cur_dc32, max_DCtime = g_max_DCtime;
-    int PRNS = g_PRNS;
-    struct timespec ts;
     struct timespec ts_now;
-
-    char IOmap[4096] = {};
     bool reachedInitial[ELMO_DOF] = {false};
     // force_control_mode = true;
     de_debug_level++;
@@ -1144,7 +1096,8 @@ void *ethercatThread1(void *data)
     ts_tt.tv_sec += 60 * 60 * 9;
     strftime(buff, sizeof buff, "%D %T", gmtime(&ts_tt.tv_sec));
 
-    printf("ELMO %d : entering initialize START_N %d jointNUM %d QSTART %d | %s\n", init_args->ecat_device, START_N, init_args->ecat_slave_num, init_args->q_start_, buff);
+    if (init_args->ecat_device == 0)
+        printf("ELMO %d : entering initialize START_N %d jointNUM %d QSTART %d | %s\n", init_args->ecat_device, START_N, init_args->ecat_slave_num, init_args->q_start_, buff);
 
     if (shm_msgs_->shutdown)
         printf("Shutdown Command Before Start\n");
@@ -1394,7 +1347,7 @@ void *ethercatThread1(void *data)
                     }
                     if (reachedInitial[slave - 1])
                     {
-                        q_elmo_[START_N + slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1] - q_zero_elmo_[START_N + slave - 1];
+                        q_elmo_[START_N + slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1]; // - q_zero_elmo_[START_N + slave - 1];
 
                         hommingElmo[START_N + slave - 1] =
                             (((uint32_t)ec_slave[slave].inputs[6]) & ((uint32_t)1));
@@ -1698,7 +1651,7 @@ void *ethercatThread1(void *data)
     }
 
     if (!shm_msgs_->shutdown)
-        printf("%sELMO %d: Control Mode Start ... at%ld %s\n", cgreen, g_init_args.ecat_device, cycle_count, creset);
+        printf("%sELMO %d : Control Mode Start ... at%ld %s\n", cgreen, g_init_args.ecat_device, cycle_count, creset);
 
     // memset(joint_state_elmo_, ESTATE::OPERATION_READY, sizeof(int) * ec_slavecount);
     // st_start_time = std::chrono::steady_clock::now();
@@ -2059,7 +2012,12 @@ void *ethercatThread1(void *data)
 
                 txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousTorquemode;
                 txPDO[i]->targetTorque = (int)(torque_desired_elmo_[START_N + i] * NM2CNT[START_N + i] * elmo_axis_direction[START_N + i]);
+
                 txPDO[i]->maxTorque = (uint16)maxTorque; // originaly 1000
+                if (g_init_args.ecat_device == 1)
+                {
+                    txPDO[i]->maxTorque = (uint16)(maxTorque * 0.6); // originaly 1000
+                }
             }
             else
             {
@@ -2305,14 +2263,48 @@ void *ethercatThread3(void *data)
 
                 UPLOW_diff = shm_msgs_->statusCount2 - shm_msgs_->statusCount;
                 start_observe = true;
-                printf("BOTH ECAT ACTIVATED! START WATCHDOG, UL DIFF : %d\n", UPLOW_diff);
+
+                if (init_args->ecat_device == 1)
+                    printf("%sBOTH ECAT ACTIVATED! START WATCHDOG, UL DIFF : %d%s\n", cgreen, UPLOW_diff, creset);
             }
 
             clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_timeout2, NULL);
         }
         else
         {
+            if (init_args->ecat_device == 1)
+            {
+
+                shm_msgs_->wc1_level = 0;
+            }
+            else if (init_args->ecat_device == 2)
+            {
+
+                shm_msgs_->wc2_level = 0;
+            }
+
             checkCount++;
+
+            if (init_args->ecat_device == 1)
+            {
+                shm_msgs_->wc1_level++;
+                shm_msgs_->watchCount = checkCount;
+
+                if (abs(shm_msgs_->watchCount - shm_msgs_->watchCount2) > 10)
+                {
+                    printf("WATCHDOG 1 : WATCHDOG 2 ERROR!! W1 : %d W2 : %d, W2 l : %d\n", (int)shm_msgs_->watchCount, (int)shm_msgs_->watchCount2, shm_msgs_->wc2_level);
+                }
+            }
+            else if (init_args->ecat_device == 2)
+            {
+                shm_msgs_->wc2_level++;
+                shm_msgs_->watchCount2 = checkCount;
+
+                if (abs(shm_msgs_->watchCount - shm_msgs_->watchCount2) > 10)
+                {
+                    printf("WATCHDOG 2 : WATCHDOG 1 ERROR!! W1 : %d W2 : %d, W2 l : %d\n", (int)shm_msgs_->watchCount, (int)shm_msgs_->watchCount2, shm_msgs_->wc1_level);
+                }
+            }
             printCount++;
 
             if (checkCount > 2000)
@@ -2324,10 +2316,25 @@ void *ethercatThread3(void *data)
                     ts_thread3.tv_nsec -= SEC_IN_NSEC;
                     ts_thread3.tv_sec++;
                 }
+                if (init_args->ecat_device == 1)
+                {
+                    shm_msgs_->wc1_level++;
+                }
+                else if (init_args->ecat_device == 2)
+                {
+                    shm_msgs_->wc2_level++;
+                }
 
                 clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts_thread3, NULL);
-                cpu_relax();
-
+                // cpu_relax();
+                if (init_args->ecat_device == 1)
+                {
+                    shm_msgs_->wc1_level++;
+                }
+                else if (init_args->ecat_device == 2)
+                {
+                    shm_msgs_->wc2_level++;
+                }
                 int c_diff = abs((shm_msgs_->statusCount2 - shm_msgs_->statusCount) - UPLOW_diff);
 
                 if (c_diff > 10)
@@ -2335,48 +2342,18 @@ void *ethercatThread3(void *data)
                     printf("WARN : C COUNT DIFF IS LARGE ! current diff : %d, init diff : %d ECAT 1 : %d ECAT 2: %d \n", (shm_msgs_->statusCount2 - shm_msgs_->statusCount), UPLOW_diff, (int)shm_msgs_->statusCount, (int)shm_msgs_->statusCount2);
                 }
 
-                // if (control_mode && (rcv_cnt_thread3 == rcv_cnt))
-                // {
-                //     printf("ELMO %d : SAME RCV CNT DETECTED AT %d\n", init_args->ecat_device, rcv_cnt);
-                //     ec_send_processdata();
-                //     ts_thread3.tv_nsec += 500000;
-                //     if (ts_thread3.tv_nsec >= SEC_IN_NSEC)
-                //     {
-                //         ts_thread3.tv_nsec -= SEC_IN_NSEC;
-                //         ts_thread3.tv_sec++;
-                //     }
-                //     clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts_thread3, NULL);
-
-                //     while (rcv_cnt_thread3 == rcv_cnt)
-                //     {
-                //         cpu_relax();
-
-                //         printf("ELMO %d : SENDING FOR RECOVERY ...  %d.%ld %d\n", init_args->ecat_device,ts_thread3.tv_sec,ts_thread3.tv_nsec, rcv_cnt);
-
-                //         ec_send_processdata();
-                //         ts_thread3.tv_nsec += 500000;
-                //         if (ts_thread3.tv_nsec >= SEC_IN_NSEC)
-                //         {
-                //             ts_thread3.tv_nsec -= SEC_IN_NSEC;
-                //             ts_thread3.tv_sec++;
-                //         }
-                //         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &ts_thread3, NULL);
-                //     }
-                //     printf("ELMO %d : RCV CNT UPDATE CHECK %d\n", init_args->ecat_device, rcv_cnt);
-                // }
-
                 if (printCount >= 2000)
                 {
                     printCount = 0;
                     if (init_args->ecat_device == 1)
                     {
                         // printf("ELMO 1 : watchdog count : %d, com2 count : %d up&low diff : %d %u\n", checkCount, (int)shm_msgs_->statusCount2, UPLOW_diff, st_register[START_N + 0]);
-                        printf("ELMO 1 : watchdog count : %d, com2 count : %d up&low diff : %d\n", checkCount, (int)shm_msgs_->statusCount2, UPLOW_diff);
+                        // printf("ELMO 1 : watchdog count : %d, com2 count : %d up&low diff : %d\n", checkCount, (int)shm_msgs_->statusCount2, UPLOW_diff);
                     }
                     else if (init_args->ecat_device == 2)
                     {
                         // printf("ELMO 2 : watchdog count : %d, com1 count : %d up&low diff : %d %u\n", checkCount, (int)shm_msgs_->statusCount, UPLOW_diff, st_register[START_N + 0]);
-                        printf("ELMO 2 : watchdog count : %d, com1 count : %d up&low diff : %d\n", checkCount, (int)shm_msgs_->statusCount, UPLOW_diff);
+                        // printf("ELMO 2 : watchdog count : %d, com1 count : %d up&low diff : %d\n", checkCount, (int)shm_msgs_->statusCount, UPLOW_diff);
                     }
                 }
             }
@@ -2395,36 +2372,15 @@ void *ethercatThread3(void *data)
             }
         }
 
-        // if (control_mode) //Watching Other ECAT systems..
-        // {
-        //     if (g_init_args.ecat_device == 1)
-        //     {
-        //         if (shm_msgs_->controlModeLower)
-        //         {
-        //             static int monitor_other_devie = shm_msgs_->statusCount2 - shm_msgs_->statusCount;
-
-        //             printf("ECAT %d : different status Count on Other ECAT  \n", g_init_args.ecat_device);
-        //         }
-        //     }
-        //     else if (g_init_args.ecat_device == 2)
-        //     {
-        //         if (shm_msgs_->controlModeUpper)
-        //         {
-        //             static int monitor_other_devie = shm_msgs_->statusCount - shm_msgs_->statusCount2;
-
-        //             if (monitor_other_devie != (shm_msgs_->statusCount - shm_msgs_->statusCount2))
-        //             {
-        //                 monitor_other_devie = shm_msgs_->statusCount - shm_msgs_->statusCount2;
-        //             }
-
-        //             printf("ECAT %d : different status Count on Other ECAT \n", g_init_args.ecat_device);
-        //         }
-        //     }
-        // }
-
         rcv_cnt_thread3 = rcv_cnt;
-
-        // if(init_args->ecat_device == )
+        if (init_args->ecat_device == 1)
+        {
+            shm_msgs_->wc1_level++;
+        }
+        else if (init_args->ecat_device == 2)
+        {
+            shm_msgs_->wc2_level++;
+        }
 
         if (init_args->ecat_device == 0)
         {
@@ -2548,6 +2504,14 @@ void *ethercatThread3(void *data)
         }
 
         thread3++;
+        if (init_args->ecat_device == 1)
+        {
+            shm_msgs_->wc1_level++;
+        }
+        else if (init_args->ecat_device == 2)
+        {
+            shm_msgs_->wc2_level++;
+        }
     }
 
     return (void *)NULL;
@@ -2969,7 +2933,7 @@ bool loadCommutationLog(struct timespec &commutation_time)
 
     float t_before = (float)(getTimeDiff(commutation_time, ts_now) / SEC_IN_NSEC);
 
-    printf("ELMO %d : Commutation done %d seconds before \n", g_init_args.ecat_device, (int)t_before);
+    // printf("ELMO %d : Commutation done %d seconds before \n", g_init_args.ecat_device, (int)t_before);
 
     return true;
 }
@@ -3117,7 +3081,7 @@ void findzeroLeg()
 }
 void findZeroPointlow(int slv_number, double time_real_)
 {
-    double velocity = 0.05;
+    double velocity = 0.1;
     double fztime = 1.0;
     if (elmofz[slv_number].findZeroSequence == FZ_CHECKHOMMINGSTATUS)
     {
@@ -3126,6 +3090,11 @@ void findZeroPointlow(int slv_number, double time_real_)
         elmofz[slv_number].initTime = time_real_;
         elmofz[slv_number].initPos = q_elmo_[slv_number];
         elmofz[slv_number].desPos = q_ext_elmo_[slv_number];
+        elmofz[slv_number].trajTime = abs(q_ext_elmo_[slv_number] / velocity);
+
+        if (elmofz[slv_number].trajTime < 0.5)
+            elmofz[slv_number].trajTime = 0.5;
+
         elmofz[slv_number].findZeroSequence = FZ_FINDHOMMINGSTART;
 
         if (q_ext_elmo_[slv_number] > 0)
@@ -3148,32 +3117,30 @@ void findZeroPointlow(int slv_number, double time_real_)
     {
 
         ElmoMode[slv_number] = EM_POSITION;
-        q_desired_elmo_[slv_number] = elmoJointMove(time_real_, elmofz[slv_number].initPos, -elmofz[slv_number].desPos, elmofz[slv_number].initTime, fztime);
+        q_desired_elmo_[slv_number] = elmoJointMove(time_real_, elmofz[slv_number].initPos, -elmofz[slv_number].desPos, elmofz[slv_number].initTime, elmofz[slv_number].trajTime);
 
         if (time_real_ == elmofz[slv_number].initTime)
         {
-            //std::printf("joint " << slv_number << "  init pos : " << elmofz[slv_number].initPos << "   goto " << elmofz[slv_number].initPos + elmofz[slv_number].init_direction * 0.6 << '\n';
+            //printf("joint %d init pos : %f " << slv_number << "  init pos : " << elmofz[slv_number].initPos << "   goto " << elmofz[slv_number].initPos + elmofz[slv_number].init_direction * 0.6 << '\n';
         }
         static int sucnum = 0;
 
-        if (time_real_ > (elmofz[slv_number].initTime + fztime + 2.0))
+        if ((time_real_ >= (elmofz[slv_number].initTime + elmofz[slv_number].trajTime)) && (time_real_ <= (elmofz[slv_number].initTime + elmofz[slv_number].trajTime + 1.0)))
         {
             if (q_ext_elmo_[slv_number] == 0.0)
             {
                 elmofz[slv_number].findZeroSequence = FZ_FINDHOMMINGEND;
                 elmofz[slv_number].result = ElmoHommingStatus::SUCCESS;
                 sucnum++;
-                printf("ELMO %d : %d success \n", g_init_args.ecat_device, slv_number);
-                // std::cout << slv_number << "success : " << sucnum << '\n';
                 state_zp_[JointMap2[slv_number]] = ZSTATE::ZP_SUCCESS;
             }
-            else
-            {
-                elmofz[slv_number].initTime = time_real_;
-                elmofz[slv_number].initPos = q_elmo_[slv_number];
-                elmofz[slv_number].desPos = q_ext_elmo_[slv_number];
-                elmofz[slv_number].findZeroSequence = FZ_FINDHOMMINGSTART;
-            }
+        }
+        else if (time_real_ > (elmofz[slv_number].initTime + elmofz[slv_number].trajTime + 1.0))
+        {
+            elmofz[slv_number].initTime = time_real_;
+            elmofz[slv_number].initPos = q_elmo_[slv_number];
+            elmofz[slv_number].desPos = q_ext_elmo_[slv_number];
+            elmofz[slv_number].findZeroSequence = FZ_FINDHOMMINGSTART;
         }
         // if (control_time_real_ > elmofz[slv_number].initTime + fztime * 4.0)
         // {

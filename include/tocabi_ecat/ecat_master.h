@@ -125,6 +125,7 @@ struct ElmoHomming
     bool startFound = false;
     bool endFound = false;
     int findZeroSequence = 0;
+    double trajTime;
     double initTime;
     double initPos;
     double desPos;
