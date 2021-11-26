@@ -173,6 +173,8 @@ int send_avg, send_min, send_max, send_dev;
 float lat_avg2, lat_min2, lat_max2, lat_dev2;
 float send_avg2, send_min2, send_max2, send_dev2;
 
+int rat_avg, rat_max;
+
 int low_rcv_ovf, low_mid_ovf, low_snd_ovf;
 int low_rcv_us, low_mid_us, low_snd_us;
 float low_rcv_avg, low_rcv_max;
@@ -825,6 +827,21 @@ bool initTocabiArgs(const TocabiInitArgs &args)
     init_shm(shm_msg_key, shm_id_, &shm_msgs_);
     elmoInit();
 
+    for (int i = 0; i < 20; i++)
+    {
+        if (args.ecat_device == 1)
+        {
+            shm_msgs_->rcv_h[i] = 0;
+            shm_msgs_->send_h[i] = 0;
+            shm_msgs_->lat_h[i] = 0;
+        }
+        else if (args.ecat_device == 2)
+        {
+            shm_msgs_->rcv2_h[i] = 0;
+            shm_msgs_->send2_h[i] = 0;
+            shm_msgs_->lat2_h[i] = 0;
+        }
+    }
     // shm_msgs_->shutdown = false;
     if (shm_msgs_->shutdown == true)
     {
@@ -859,38 +876,9 @@ bool initTocabiSystem(const TocabiInitArgs &args)
         return false;
     }
 
-    if (args.ecat_device == 0)
-        printf("ELMO %d : ec_init on %s %s succeeded.\n", args.ecat_device, args.port1, args.port2);
+    printf("ELMO %d : ec_init on %s %s succeeded.\n", args.ecat_device, args.port1, args.port2);
 
-    if (ec_config_init(FALSE) <= 0) // TRUE when using configtable to init slavtes, FALSE oherwise
-    {
-        printf("%sELMO : No slaves found!%s\n", cred, creset);
-        return false;
-    }
-    if (args.ecat_device == 0)
-        printf("ELMO %d : %d / %d slaves found and configured.\n", args.ecat_device, ec_slavecount, args.ecat_slave_num); // ec_slavecount -> slave num
-
-    if (ec_slavecount == args.ecat_slave_num)
-    {
-        ecat_number_ok = true;
-    }
-    else
-    {
-        printf("ELMO %d : %d / %d slaves found and configured.\n", args.ecat_device, ec_slavecount, args.ecat_slave_num); // ec_slavecount -> slave num
-        // std::cout << cred << "WARNING : SLAVE NUMBER INSUFFICIENT" << creset << '\n';
-        shm_msgs_->shutdown = true;
-        return false;
-    }
-    /** CompleteAccess disabled for Elmo driver */
-    for (int slave = 1; slave <= ec_slavecount; slave++)
-    {
-        //printf("ELMO : Has Slave[%d] CA? %s\n", slave, ec_slave[slave].CoEdetails & ECT_COEDET_SDOCA ? "true" : "false");
-        if (!(ec_slave[slave].CoEdetails & ECT_COEDET_SDOCA))
-        {
-            printf("ELMO %d : slave[%d] CA? : false , shutdown request \n ", args.ecat_device, slave);
-        }
-        ec_slave[slave].CoEdetails ^= ECT_COEDET_SDOCA;
-    }
+    
 
     return true;
 }
@@ -904,6 +892,32 @@ void *ethercatThread1(void *data)
 {
 
     TocabiInitArgs *init_args = (TocabiInitArgs *)data;
+
+    if (ec_config_init(FALSE) <= 0) // TRUE when using configtable to init slavtes, FALSE oherwise
+    {
+        printf("%sELMO : No slaves found!%s\n", cred, creset);
+    }
+    printf("ELMO %d : %d / %d slaves found and configured.\n", g_init_args.ecat_device, ec_slavecount, g_init_args.ecat_slave_num); // ec_slavecount -> slave num
+
+    if (ec_slavecount == g_init_args.ecat_slave_num)
+    {
+        ecat_number_ok = true;
+    }
+    else
+    {
+        printf("ELMO %d : %d / %d slaves found and configured.\n", g_init_args.ecat_device, ec_slavecount, g_init_args.ecat_slave_num); // ec_slavecount -> slave num
+        shm_msgs_->shutdown = true;
+    }
+    /** CompleteAccess disabled for Elmo driver */
+    for (int slave = 1; slave <= ec_slavecount; slave++)
+    {
+        if (!(ec_slave[slave].CoEdetails & ECT_COEDET_SDOCA))
+        {
+            printf("ELMO %d : slave[%d] CA? : false , shutdown request \n ", g_init_args.ecat_device, slave);
+        }
+        ec_slave[slave].CoEdetails ^= ECT_COEDET_SDOCA;
+    }
+
 
     for (int slave = 1; slave <= ec_slavecount; slave++)
     {
@@ -1661,12 +1675,14 @@ void *ethercatThread1(void *data)
     //Starting
     ///////////////////////////////////////////////////////////////////////////////////////////
 
-    int64_t total1, total2;
+    int64_t total1, total2, total3;
     int64_t total_dev1, total_dev2;
     int lat_ns;
     int sat_ns;
+    int rat_ns;
     float lmax, lamax, lmin, ldev, lavg, lat;
     float smax, samax, smin, sdev, savg, sat;
+    float rmax, ramax, rmin, rdev, ravg, rat;
 
     rcv_cnt = 0;
 
@@ -1686,13 +1702,16 @@ void *ethercatThread1(void *data)
     lmin = 10000.00;
     smax = 0.0;
     smin = 100000.0;
+    rmax = 0.0;
 
     sdev = 0;
     savg = 0;
     sat = 0;
+    rat = 0;
 
     lamax = 0.0;
     samax = 0.0;
+    ramax = 0.0;
 
     clock_gettime(CLOCK_MONOTONIC, &ts);
     ts.tv_nsec += PRNS;
@@ -1701,6 +1720,7 @@ void *ethercatThread1(void *data)
         ts.tv_sec++;
         ts.tv_nsec -= SEC_IN_NSEC;
     }
+    struct timespec ts0;
     struct timespec ts1;
     struct timespec ts2;
 
@@ -1709,6 +1729,7 @@ void *ethercatThread1(void *data)
     bool status_first = true;
     control_mode = true;
 
+    int r_us, s_us, l_us;
     int control_cnt = 0;
 
     if (init_args->ecat_device == 1)
@@ -1756,7 +1777,12 @@ void *ethercatThread1(void *data)
         //     printf("ov_cnt event at ELMO %d\n", init_args->ecat_device);
         // }
 
+        clock_gettime(CLOCK_MONOTONIC, &ts0);
         ec_send_processdata();
+
+        clock_gettime(CLOCK_MONOTONIC, &ts1);
+        rat_ns = (ts1.tv_sec - ts0.tv_sec) * SEC_IN_NSEC + ts1.tv_nsec - ts0.tv_nsec;
+
         if (g_init_args.ecat_device == 1) // mask 1
         {
             shm_msgs_->e1_m[mask++]++;
@@ -2061,6 +2087,8 @@ void *ethercatThread1(void *data)
 
         total2 += sat_ns;
 
+        total3 += rat_ns;
+
         if (lat_ns > PERIOD_OVF * 1000)
         {
             l_ovf++;
@@ -2075,6 +2103,7 @@ void *ethercatThread1(void *data)
 
         lat_avg = total1 / c_count;
         send_avg = total2 / c_count;
+        rat_avg = total3 / c_count;
 
         if (lmax < lat_ns)
         {
@@ -2092,6 +2121,11 @@ void *ethercatThread1(void *data)
         {
             samax = sat_ns;
         }
+        if (rmax < rat_ns)
+        {
+            rmax = rat_ns;
+        }
+
         total_dev2 += sqrt(((sat - savg) * (sat - savg)));
         sdev = total_dev2 / cycle_count;
 
@@ -2099,6 +2133,16 @@ void *ethercatThread1(void *data)
         // shm_msgs_->send_max2 = smax;
         // shm_msgs_->send_min2 = smin;
         // shm_msgs_->send_dev2 = sdev;
+
+        r_us = rat_ns / 1000;
+        if (r_us < 0)
+            r_us = 0;
+        s_us = sat_ns / 1000;
+        if (s_us < 0)
+            s_us = 0;
+        l_us = lat_ns / 1000;
+        if (l_us < 0)
+            l_us = 0;
 
         if (g_init_args.ecat_device == 0)
         {
@@ -2132,6 +2176,35 @@ void *ethercatThread1(void *data)
             shm_msgs_->send_avg = send_avg;
             shm_msgs_->send_max = samax;
             shm_msgs_->send_ovf = s_ovf;
+            shm_msgs_->rcv_avg = rat_avg;
+            shm_msgs_->rcv_max = rmax;
+
+            if (r_us >= 0 && r_us < 19)
+            {
+                shm_msgs_->send_h[r_us]++;
+            }
+            else if (r_us >= 19)
+            {
+                shm_msgs_->send_h[19]++;
+            }
+
+            if (l_us >= 0 && l_us < 19)
+            {
+                shm_msgs_->lat_h[l_us]++;
+            }
+            else if (l_us >= 19)
+            {
+                shm_msgs_->lat_h[19]++;
+            }
+
+            if (s_us >= 0 && s_us < 19)
+            {
+                shm_msgs_->rcv_h[s_us]++;
+            }
+            else if (s_us >= 19)
+            {
+                shm_msgs_->rcv_h[19]++;
+            }
         }
         else if (g_init_args.ecat_device == 2)
         {
@@ -2141,6 +2214,35 @@ void *ethercatThread1(void *data)
             shm_msgs_->send_avg2 = send_avg;
             shm_msgs_->send_max2 = samax;
             shm_msgs_->send_ovf2 = s_ovf;
+            shm_msgs_->rcv_avg2 = rat_avg;
+            shm_msgs_->rcv_max2 = rmax;
+
+            if (r_us >= 0 && r_us < 19)
+            {
+                shm_msgs_->send2_h[r_us]++;
+            }
+            else if (r_us >= 19)
+            {
+                shm_msgs_->send2_h[19]++;
+            }
+
+            if (l_us >= 0 && l_us < 19)
+            {
+                shm_msgs_->lat2_h[l_us]++;
+            }
+            else if (l_us >= 19)
+            {
+                shm_msgs_->lat2_h[19]++;
+            }
+
+            if (s_us >= 0 && s_us < 19)
+            {
+                shm_msgs_->rcv2_h[s_us]++;
+            }
+            else if (s_us >= 19)
+            {
+                shm_msgs_->rcv2_h[19]++;
+            }
         }
 
         cycle_count++;
@@ -2265,7 +2367,7 @@ void *ethercatThread3(void *data)
                 start_observe = true;
 
                 if (init_args->ecat_device == 1)
-                    printf("%sBOTH ECAT ACTIVATED! START WATCHDOG, UL DIFF : %d%s\n", cgreen, UPLOW_diff, creset);
+                    printf("%sEWATCH : BOTH ECAT ACTIVATED! START WATCHDOG, UL DIFF : %d%s\n", cgreen, UPLOW_diff, creset);
             }
 
             clock_nanosleep(CLOCK_MONOTONIC, 0, &ts_timeout2, NULL);
