@@ -878,8 +878,6 @@ bool initTocabiSystem(const TocabiInitArgs &args)
 
     printf("ELMO %d : ec_init on %s %s succeeded.\n", args.ecat_device, args.port1, args.port2);
 
-    
-
     return true;
 }
 
@@ -917,7 +915,6 @@ void *ethercatThread1(void *data)
         }
         ec_slave[slave].CoEdetails ^= ECT_COEDET_SDOCA;
     }
-
 
     for (int slave = 1; slave <= ec_slavecount; slave++)
     {
@@ -966,7 +963,7 @@ void *ethercatThread1(void *data)
 
 #endif
     while (EcatError)
-        printf("%s\n", ec_elist2string());
+        printf("%s", ec_elist2string());
 
     if (init_args->verbose)
         printf("ELMO %d : EC WAITING STATE TO SAFE_OP\n", init_args->ecat_device);
@@ -1485,7 +1482,7 @@ void *ethercatThread1(void *data)
 
             if (de_zp_upper_switch)
             {
-                printf("ELMO %d starting upper zp\n", init_args->ecat_device);
+                printf("ELMO %d : Starting upper zp\n", init_args->ecat_device);
                 // for (int i = 0; i < 8; i++)
                 //     printf("L" << i << "\t";
                 // for (int i = 0; i < 8; i++)
@@ -1505,7 +1502,7 @@ void *ethercatThread1(void *data)
 
             if (de_zp_lower_switch)
             {
-                printf("starting lower zp\n");
+                printf("ELMO %d : Starting lower zp\n", init_args->ecat_device);
                 de_zp_lower_switch = false;
                 zp_lower = true;
             }
@@ -1585,7 +1582,7 @@ void *ethercatThread1(void *data)
             static bool low_verbose = true;
             if (low_verbose && fz_group3_check)
             {
-                printf("ELMO : lowerbody zp done \n");
+                printf("ELMO %d : lowerbody zp done \n", init_args->ecat_device);
                 low_verbose = false;
             }
             if (fz_group2_check && g_init_args.ecat_device == 2)
