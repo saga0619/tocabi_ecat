@@ -809,8 +809,8 @@ void elmoInit()
     elmofz[Waist2_Joint].init_direction = -1.0;
     elmofz[Waist1_Joint].req_length = 0.07;
 
-    q_goinit_[L_Armlink_Joint] = 0.2;
-    q_goinit_[R_Armlink_Joint] = 0.2;
+    q_goinit_[L_Armlink_Joint] = -1.0;
+    q_goinit_[R_Armlink_Joint] = 1.0;
 
     q_zero_mod_elmo_[8] = 15.46875 * DEG2RAD;
     q_zero_mod_elmo_[7] = 16.875 * DEG2RAD;
