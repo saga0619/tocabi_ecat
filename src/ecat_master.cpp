@@ -154,6 +154,7 @@ double q_zero_point[ELMO_DOF];
 
 double q_zero_elmo_[ELMO_DOF];
 double q_zero_mod_elmo_[ELMO_DOF];
+double q_goinit_[ELMO_DOF] = {0};
 
 int maxTorque = 0;
 
@@ -807,6 +808,9 @@ void elmoInit()
     elmofz[Waist2_Joint].req_length = 0.07;
     elmofz[Waist2_Joint].init_direction = -1.0;
     elmofz[Waist1_Joint].req_length = 0.07;
+
+    q_goinit_[L_Armlink_Joint] = 0.2;
+    q_goinit_[R_Armlink_Joint] = 0.2;
 
     q_zero_mod_elmo_[8] = 15.46875 * DEG2RAD;
     q_zero_mod_elmo_[7] = 16.875 * DEG2RAD;
@@ -3378,8 +3382,9 @@ void findZeroPoint(int slv_number, double time_now_)
     {
         ElmoMode[slv_number] = EM_POSITION;
 
-        double go_to_zero_dur = fztime * (abs(q_zero_elmo_[slv_number] - elmofz[slv_number].initPos) / 0.3);
-        q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].initPos, q_zero_elmo_[slv_number] - elmofz[slv_number].initPos, elmofz[slv_number].initTime, go_to_zero_dur);
+        double go_distance = q_zero_elmo_[slv_number] + q_goinit_[slv_number] - elmofz[slv_number].initPos;
+        double go_to_zero_dur = fztime * (abs(go_distance) / 0.3);
+        q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].initPos, go_distance, elmofz[slv_number].initTime, go_to_zero_dur);
 
         //go to zero position
         if (time_now_ > (elmofz[slv_number].initTime + go_to_zero_dur))
