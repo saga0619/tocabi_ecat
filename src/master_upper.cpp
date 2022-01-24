@@ -1,5 +1,6 @@
 #include "tocabi_ecat/ecat_master.h"
 #include "sys/mman.h"
+// #include <iostream>
 
 int main(int argc, char **argv)
 {
@@ -124,7 +125,8 @@ int main(int argc, char **argv)
         printf("pthread setinheritsched failed\n");
         return ret;
     }
-    // printf("[ECAT - INFO] start init process\n");
+    // std::cout<<"ECATUP"<<std::endl;
+    // printf("[ECAT - UP] start init process\n");
 
     // printf("[ECAT - INFO] init process has been done\n");
     /* Create a pthread with specified attributes */

@@ -125,6 +125,7 @@ int main(int argc, char **argv)
         printf("pthread setinheritsched failed\n");
         return ret;
     }
+    // printf("[ECAT - LOW] start init process\n");
 
     // printf("[ECAT - INFO] start init process\n");
 

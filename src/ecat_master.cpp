@@ -1566,6 +1566,7 @@ void *ethercatThread1(void *data)
                     fz_group2_check = fz_group2_check && (elmofz[fz_group2[i]].result == ElmoHommingStatus::SUCCESS);
                 }
                 fz_group3_check = true;
+
                 for (int i = 0; i < 12; i++)
                 {
                     fz_group3_check = fz_group3_check && (elmofz[fz_group3[i]].result == ElmoHommingStatus::SUCCESS);
@@ -3236,6 +3237,7 @@ void findZeroPointlow(int slv_number, double time_real_)
                 elmofz[slv_number].result = ElmoHommingStatus::SUCCESS;
                 sucnum++;
                 state_zp_[JointMap2[slv_number]] = ZSTATE::ZP_SUCCESS;
+                printf("joint %d leg success\n", slv_number);
             }
         }
         else if (time_real_ > (elmofz[slv_number].initTime + elmofz[slv_number].trajTime + 1.0))
@@ -3297,6 +3299,10 @@ void findZeroPoint(int slv_number, double time_now_)
         if (time_now_ > elmofz[slv_number].initTime + fztime)
         {
             printf("%s ELMO %d : WARNING! : %s homming not turning off! %s\n", cred, g_init_args.ecat_device, ELMO_NAME[slv_number], creset);
+            state_zp_[JointMap2[slv_number]] = ZSTATE::ZP_NOT_ENOUGH_HOMMING;
+            elmofz[slv_number].findZeroSequence = 8;
+            elmofz[slv_number].result = ElmoHommingStatus::FAILURE;
+            elmofz[slv_number].initTime = time_now_;
         }
     }
     else if (elmofz[slv_number].findZeroSequence == FZ_FINDHOMMINGEND)
@@ -3389,8 +3395,8 @@ void findZeroPoint(int slv_number, double time_now_)
         //go to zero position
         if (time_now_ > (elmofz[slv_number].initTime + go_to_zero_dur))
         {
-            //std::printf("go to zero complete !\n");
-            //printf("Motor %d %s : Zero Point Found : %8.6f, homming length : %8.6f ! ", slv_number, ELMO_NAME[slv_number].c_str(), q_zero_elmo_[slv_number], abs(elmofz[slv_number].posStart - elmofz[slv_number].posEnd));
+            //printf("go to zero complete !\n");
+            printf("Motor %d %s : Zero Point Found : %8.6f, homming length : %8.6f ! \n", slv_number, ELMO_NAME[slv_number], q_zero_elmo_[slv_number], abs(elmofz[slv_number].posStart - elmofz[slv_number].posEnd));
             //fflush(stdout);
 
             // printf("\33[2K\r");
