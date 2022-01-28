@@ -13,14 +13,16 @@ execute_process(COMMAND xeno-config --posix --cflags OUTPUT_VARIABLE XENO_CFLAGS
 
 execute_process(COMMAND xeno-config --posix --ldflags OUTPUT_VARIABLE XENO_LDFLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
 message(" xeno flags : " ${XENO_CFLAGS})
-string(FIND ${UNAME_RES} "Sxenomai" wsloc)
+string(FIND ${UNAME_RES} "xenomai" wsloc)
+
+
 
 if(${wsloc} EQUAL -1 )
   message(" simulation only compile mode ")
   ADD_DEFINITIONS(-DCOMPILE_SIMULATION)
   set(COMPILE_SIM TRUE)
 else()
-  message(" xenomai detected realrobot compilt mode ")
+  message(" xenomai detected realrobot compile mode ")
   ADD_DEFINITIONS(-DCOMPILE_REALROBOT)
   set(COMPILE_REAL TRUE)
 endif() 
