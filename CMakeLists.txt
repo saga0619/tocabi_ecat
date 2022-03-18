@@ -12,7 +12,7 @@ message("-- kernel version : " ${UNAME_RES})
 execute_process(COMMAND xeno-config --posix --cflags OUTPUT_VARIABLE XENO_CFLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 execute_process(COMMAND xeno-config --posix --ldflags OUTPUT_VARIABLE XENO_LDFLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
-message(" xeno flags : " ${XENO_CFLAGS})
+#message(" xeno flags : " ${XENO_CFLAGS})
 string(FIND ${UNAME_RES} "xenomai" wsloc)
 
 
