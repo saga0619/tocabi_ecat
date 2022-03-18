@@ -1681,6 +1681,7 @@ void *ethercatThread1(void *data)
     int64_t total_dev1, total_dev2;
     int lat_ns;
     int sat_ns;
+    int rsat_ns;
     int rat_ns;
     float lmax, lamax, lmin, ldev, lavg, lat;
     float smax, samax, smin, sdev, savg, sat;
@@ -1724,6 +1725,7 @@ void *ethercatThread1(void *data)
     }
     struct timespec ts0;
     struct timespec ts1;
+    struct timespec ts12;
     struct timespec ts2;
 
     uint16_t statusWord[ELMO_DOF];
@@ -1824,6 +1826,8 @@ void *ethercatThread1(void *data)
             }
         }
 
+        clock_gettime(CLOCK_MONOTONIC, &ts12);
+
         if (g_init_args.ecat_device == 1) // mask 3
         {
             shm_msgs_->e1_m[mask++]++;
@@ -1842,10 +1846,13 @@ void *ethercatThread1(void *data)
         {
             shm_msgs_->e2_m[mask++]++;
         }
-        cpu_relax();
 
         clock_gettime(CLOCK_MONOTONIC, &ts2);
         sat_ns = (ts2.tv_sec - ts1.tv_sec) * SEC_IN_NSEC + ts2.tv_nsec - ts1.tv_nsec;
+        rsat_ns = (ts2.tv_sec - ts12.tv_sec) * SEC_IN_NSEC + ts2.tv_nsec - ts12.tv_nsec;
+
+        ///
+        cpu_relax();
 
         for (int i = 0; i < ec_slavecount; i++)
         {
@@ -2093,11 +2100,30 @@ void *ethercatThread1(void *data)
 
         if (lat_ns > PERIOD_OVF * 1000)
         {
+            int lat_temp = lat_ns;
+
+            while (lat_temp > 500 * 1000)
+            {
+                cycle_count++;
+                ts.tv_nsec += PRNS + toff;
+                if (ts.tv_nsec >= SEC_IN_NSEC)
+                {
+                    ts.tv_sec++;
+                    ts.tv_nsec -= SEC_IN_NSEC;
+                }
+
+                lat_temp = lat_temp - 500 * 1000;
+            }
+            // int cycle_mod = lat_ns
+            // lat_ns/500000
+
             l_ovf++;
+            printf("ECAT %d : lat %d ns ovf at %ld\n", g_init_args.ecat_device, lat_ns, cycle_count);
         }
         if (sat_ns > 350 * 1000)
         {
             s_ovf++;
+            printf("ECAT %d : sat %d ns rsat %d ns ,ovf at %ld\n", g_init_args.ecat_device, sat_ns, rsat_ns, cycle_count);
         }
 
         static int c_count = 0;
