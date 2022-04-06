@@ -3017,7 +3017,7 @@ void getJointCommand()
     commandCount_before2 = commandCount_before;
     commandCount_before = commandCount;
 
-    maxTorque = shm_msgs_->maxTorque;
+    maxTorque = shm_msgs_->maxTorque; //Max Torque is defined at State_manager.cpp maxTorque value.
 }
 
 bool saveCommutationLog()

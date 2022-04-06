@@ -14,7 +14,7 @@
 
 #define EC_TIMEOUTMON 500
 
-#define EC_PACKET_TIMEOUT 350
+#define EC_PACKET_TIMEOUT 250
 
 #define PERIOD_OVF 50
 
