@@ -134,6 +134,7 @@ struct ElmoHomming
     double req_length = 0.2;
     double firstPos;
     double init_direction = 1;
+    double hommingLength = 0.3;
     int status;
     int result;
 };

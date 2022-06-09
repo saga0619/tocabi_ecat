@@ -805,9 +805,20 @@ void elmoInit()
     elmofz[R_Wrist2_Joint].req_length = 0.05;
     elmofz[L_Wrist2_Joint].req_length = 0.05;
 
+    elmofz[Head_Joint].init_direction = -1.0;
+    elmofz[Head_Joint].hommingLength = 0.3;
+    elmofz[Neck_Joint].hommingLength = 0.15;
+
+
+    // elmofz[Waist2_Joint]
     elmofz[Waist2_Joint].req_length = 0.07;
-    elmofz[Waist2_Joint].init_direction = -1.0;
+    elmofz[Waist2_Joint].hommingLength = 0.15;
+    elmofz[Waist2_Joint].init_direction = 1.0; //To bend forward
+
+
     elmofz[Waist1_Joint].req_length = 0.07;
+
+
 
     q_goinit_[L_Armlink_Joint] = -1.0;
     q_goinit_[R_Armlink_Joint] = 1.0;
@@ -3309,7 +3320,7 @@ void findZeroPoint(int slv_number, double time_now_)
     {
         // go to + 0.3rad until homming sensor turn off
         ElmoMode[slv_number] = EM_POSITION;
-        q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].initPos, 0.3, elmofz[slv_number].initTime, fztime);
+        q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].initPos, elmofz[slv_number].hommingLength, elmofz[slv_number].initTime, fztime);
 
         if ((hommingElmo[slv_number] == 0) && (hommingElmo_before[slv_number] == 0))
         {
@@ -3335,7 +3346,7 @@ void findZeroPoint(int slv_number, double time_now_)
     {
         // printf("%f goto homming on : %d\n", time_now_, slv_number);
         ElmoMode[slv_number] = EM_POSITION;
-        q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].posStart, -0.3, elmofz[slv_number].initTime, fztime);
+        q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].posStart, -elmofz[slv_number].hommingLength, elmofz[slv_number].initTime, fztime);
 
         // go to -20deg until homming turn on, and turn off
         if ((hommingElmo_before[slv_number] == 1) && (hommingElmo[slv_number] == 0))
@@ -3386,11 +3397,11 @@ void findZeroPoint(int slv_number, double time_now_)
     { // start from unknown
 
         ElmoMode[slv_number] = EM_POSITION;
-        q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].initPos, elmofz[slv_number].init_direction * 0.3, elmofz[slv_number].initTime, fztime);
+        q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].initPos, elmofz[slv_number].init_direction * elmofz[slv_number].hommingLength, elmofz[slv_number].initTime, fztime);
         if (time_now_ > (elmofz[slv_number].initTime + fztime))
         {
             // printf("fzhm: %d\n", slv_number);
-            q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].initPos + 0.3 * elmofz[slv_number].init_direction, -0.6 * elmofz[slv_number].init_direction, elmofz[slv_number].initTime + fztime, fztime * 2.0);
+            q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].initPos + elmofz[slv_number].hommingLength * elmofz[slv_number].init_direction, -0.6 * elmofz[slv_number].init_direction, elmofz[slv_number].initTime + fztime, fztime * 2.0);
         }
 
         if (hommingElmo[slv_number] && hommingElmo_before[slv_number])
@@ -3415,7 +3426,7 @@ void findZeroPoint(int slv_number, double time_now_)
         ElmoMode[slv_number] = EM_POSITION;
 
         double go_distance = q_zero_elmo_[slv_number] + q_goinit_[slv_number] - elmofz[slv_number].initPos;
-        double go_to_zero_dur = fztime * (abs(go_distance) / 0.3);
+        double go_to_zero_dur = fztime * (abs(go_distance) / elmofz[slv_number].hommingLength);
         q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].initPos, go_distance, elmofz[slv_number].initTime, go_to_zero_dur);
 
         // go to zero position
