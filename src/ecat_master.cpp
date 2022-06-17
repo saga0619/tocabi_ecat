@@ -809,16 +809,12 @@ void elmoInit()
     elmofz[Head_Joint].hommingLength = 0.3;
     elmofz[Neck_Joint].hommingLength = 0.15;
 
-
     // elmofz[Waist2_Joint]
     elmofz[Waist2_Joint].req_length = 0.07;
     elmofz[Waist2_Joint].hommingLength = 0.15;
-    elmofz[Waist2_Joint].init_direction = 1.0; //To bend forward
-
+    elmofz[Waist2_Joint].init_direction = 1.0; // To bend forward
 
     elmofz[Waist1_Joint].req_length = 0.07;
-
-
 
     q_goinit_[L_Armlink_Joint] = -1.0;
     q_goinit_[R_Armlink_Joint] = 1.0;
@@ -1949,7 +1945,8 @@ void *ethercatThread1(void *data)
                         CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1];
                     torque_elmo_[START_N + slave - 1] =
                         (int16_t)(((int16_t)ec_slave[slave].inputs[14]) +
-                                  ((int16_t)ec_slave[slave].inputs[15] << 8));
+                                  ((int16_t)ec_slave[slave].inputs[15] << 8)) *
+                        elmo_axis_direction[START_N + slave - 1] / NM2CNT[START_N + slave - 1];
                     q_ext_elmo_[START_N + slave - 1] =
                         (((int32_t)ec_slave[slave].inputs[16]) +
                          ((int32_t)ec_slave[slave].inputs[17] << 8) +
@@ -3028,7 +3025,7 @@ void getJointCommand()
     commandCount_before2 = commandCount_before;
     commandCount_before = commandCount;
 
-    maxTorque = shm_msgs_->maxTorque; //Max Torque is defined at State_manager.cpp maxTorque value.
+    maxTorque = shm_msgs_->maxTorque; // Max Torque is defined at State_manager.cpp maxTorque value.
 }
 
 bool saveCommutationLog()
