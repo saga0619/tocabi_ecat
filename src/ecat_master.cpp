@@ -795,7 +795,7 @@ void elmoInit()
 
     elmofz[L_Shoulder1_Joint].req_length = 0.18;
     elmofz[L_Shoulder2_Joint].req_length = 0.15;
-    elmofz[R_Shoulder2_Joint].req_length = 0.07;
+    elmofz[R_Shoulder2_Joint].req_length = 0.065;
 
     elmofz[R_Shoulder3_Joint].req_length = 0.03;
     elmofz[L_Shoulder3_Joint].req_length = 0.03;
@@ -2215,31 +2215,33 @@ void *ethercatThread1(void *data)
             shm_msgs_->rcv_avg = rat_avg;
             shm_msgs_->rcv_max = rmax;
 
-            if (r_us >= 0 && r_us < 19)
+            int max_us = 29;
+
+            if (r_us >= 0 && r_us < max_us)
             {
                 shm_msgs_->send_h[r_us]++;
             }
-            else if (r_us >= 19)
+            else if (r_us >= max_us)
             {
-                shm_msgs_->send_h[19]++;
+                shm_msgs_->send_h[max_us]++;
             }
 
-            if (l_us >= 0 && l_us < 19)
+            if (l_us >= 0 && l_us < max_us)
             {
                 shm_msgs_->lat_h[l_us]++;
             }
-            else if (l_us >= 19)
+            else if (l_us >= max_us)
             {
-                shm_msgs_->lat_h[19]++;
+                shm_msgs_->lat_h[max_us]++;
             }
 
-            if (s_us >= 0 && s_us < 19)
+            if (s_us >= 0 && s_us < max_us)
             {
                 shm_msgs_->rcv_h[s_us]++;
             }
-            else if (s_us >= 19)
+            else if (s_us >= max_us)
             {
-                shm_msgs_->rcv_h[19]++;
+                shm_msgs_->rcv_h[max_us]++;
             }
         }
         else if (g_init_args.ecat_device == 2)
@@ -2252,32 +2254,33 @@ void *ethercatThread1(void *data)
             shm_msgs_->send_ovf2 = s_ovf;
             shm_msgs_->rcv_avg2 = rat_avg;
             shm_msgs_->rcv_max2 = rmax;
+            int max_us = 29;
 
-            if (r_us >= 0 && r_us < 19)
+            if (r_us >= 0 && r_us < max_us)
             {
                 shm_msgs_->send2_h[r_us]++;
             }
-            else if (r_us >= 19)
+            else if (r_us >= max_us)
             {
-                shm_msgs_->send2_h[19]++;
+                shm_msgs_->send2_h[max_us]++;
             }
 
-            if (l_us >= 0 && l_us < 19)
+            if (l_us >= 0 && l_us < max_us)
             {
                 shm_msgs_->lat2_h[l_us]++;
             }
-            else if (l_us >= 19)
+            else if (l_us >= max_us)
             {
-                shm_msgs_->lat2_h[19]++;
+                shm_msgs_->lat2_h[max_us]++;
             }
 
-            if (s_us >= 0 && s_us < 19)
+            if (s_us >= 0 && s_us < max_us)
             {
                 shm_msgs_->rcv2_h[s_us]++;
             }
-            else if (s_us >= 19)
+            else if (s_us >= max_us)
             {
-                shm_msgs_->rcv2_h[19]++;
+                shm_msgs_->rcv2_h[max_us]++;
             }
         }
 
