@@ -1388,6 +1388,16 @@ void *ethercatThread1(void *data)
                              ((int32_t)ec_slave[slave].inputs[18] << 16) +
                              ((int32_t)ec_slave[slave].inputs[19] << 24) - q_ext_mod_elmo_[START_N + slave - 1]) *
                             EXTCNT2RAD[START_N + slave - 1] * elmo_ext_axis_direction[START_N + slave - 1];
+
+                        if (q_ext_elmo_[START_N + slave - 1] > 3.141592)
+                        {
+                            q_ext_elmo_[START_N + slave - 1] -= 3.141592 * 2;
+                        }
+                        else if (q_ext_elmo_[START_N + slave - 1] < -3.141592)
+                        {
+                            q_ext_elmo_[START_N + slave - 1] += 3.141592 * 2;
+                        }
+
                         // st_register[START_N + slave - 1] =
                         //     ((uint32_t)ec_slave[slave].inputs[20]) +
                         //      ((uint32_t)ec_slave[slave].inputs[21] << 8) +
@@ -1953,6 +1963,15 @@ void *ethercatThread1(void *data)
                          ((int32_t)ec_slave[slave].inputs[18] << 16) +
                          ((int32_t)ec_slave[slave].inputs[19] << 24) - q_ext_mod_elmo_[START_N + slave - 1]) *
                         EXTCNT2RAD[START_N + slave - 1] * elmo_ext_axis_direction[START_N + slave - 1];
+                        
+                    if (q_ext_elmo_[START_N + slave - 1] > 3.141592)
+                    {
+                        q_ext_elmo_[START_N + slave - 1] -= 3.141592 * 2;
+                    }
+                    else if (q_ext_elmo_[START_N + slave - 1] < -3.141592)
+                    {
+                        q_ext_elmo_[START_N + slave - 1] += 3.141592 * 2;
+                    }
                     // st_register[START_N + slave - 1] =
                     //     ((uint32_t)ec_slave[slave].inputs[20]) +
                     //      ((uint32_t)ec_slave[slave].inputs[21] << 8) +
@@ -3247,7 +3266,7 @@ void findZeroPointlow(int slv_number, double time_real_)
             elmofz[slv_number].init_direction = 1;
         }
 
-        if ((q_ext_elmo_[slv_number] > 3.14) || (q_ext_elmo_[slv_number < -3.14]))
+        if ((q_ext_elmo_[slv_number] > 3.14) || (q_ext_elmo_[slv_number] < -3.14))
         {
             printf("%sELMO %d : REBOOTING REQUIRED! joint %d : ext encoder error%s\n", cred, g_init_args.ecat_device, slv_number, creset);
             // std::cout << cred << "elmo reboot required. joint " << slv_number << "external encoder error" << q_ext_elmo_[slv_number] << '\n';
@@ -3268,7 +3287,7 @@ void findZeroPointlow(int slv_number, double time_real_)
 
         if ((time_real_ >= (elmofz[slv_number].initTime + elmofz[slv_number].trajTime)) && (time_real_ <= (elmofz[slv_number].initTime + elmofz[slv_number].trajTime + 1.0)))
         {
-            if (q_ext_elmo_[slv_number] == 0.0)
+            if (abs(q_ext_elmo_[slv_number])<1.0E-6)
             {
                 elmofz[slv_number].findZeroSequence = FZ_FINDHOMMINGEND;
                 elmofz[slv_number].result = ElmoHommingStatus::SUCCESS;
