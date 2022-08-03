@@ -192,6 +192,14 @@ int64 g_toff; //, gl_delta;
 
 TocabiInitArgs g_init_args;
 
+std::vector<int> r_histogram;
+std::vector<int> l_histogram;
+std::vector<int> s_histogram;
+
+int rh_ovf = 0;
+int lh_ovf = 0;
+int sh_ovf = 0;
+
 void ec_sync(int64 reftime, int64 cycletime, int64 &offsettime)
 {
     static int64 integral = 0;
@@ -211,6 +219,26 @@ void ec_sync(int64 reftime, int64 cycletime, int64 &offsettime)
         integral--;
     }
     offsettime = -(delta / 100) - (integral / 20);
+}
+
+int intlength(int num)
+{
+    if (num == 0)
+    {
+        return 1;
+    }
+    else if (num > 0)
+    {
+        return (int)log10(num) + 1;
+    }
+    else if (num < 0)
+    {
+        return (int)log10(-num) + 2;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 void getErrorName(int err_register, char *err)
@@ -831,6 +859,10 @@ bool initTocabiArgs(const TocabiInitArgs &args)
     pthread_mutex_init(&rcv_mtx_, NULL);
     pthread_cond_init(&rcv_cond_, NULL);
 
+    r_histogram.reserve(251);
+    l_histogram.reserve(251);
+    s_histogram.reserve(251);
+
     Q_START = args.q_start_;
     PART_ELMO_DOF = args.ecat_slave_num;
     START_N = args.ecat_slave_start_num;
@@ -838,7 +870,7 @@ bool initTocabiArgs(const TocabiInitArgs &args)
     init_shm(shm_msg_key, shm_id_, &shm_msgs_);
     elmoInit();
 
-    for (int i = 0; i < 20; i++)
+    for (int i = 0; i < 30; i++)
     {
         if (args.ecat_device == 1)
         {
@@ -2237,6 +2269,10 @@ void *ethercatThread1(void *data)
 
             int max_us = 29;
 
+            shm_msgs_->r_us = r_us;
+            shm_msgs_->l_us = l_us;
+            shm_msgs_->s_us = s_us;
+
             if (r_us >= 0 && r_us < max_us)
             {
                 shm_msgs_->send_h[r_us]++;
@@ -2263,6 +2299,48 @@ void *ethercatThread1(void *data)
             {
                 shm_msgs_->rcv_h[max_us]++;
             }
+
+            if (r_us < 250)
+            {
+                if (r_histogram.size() < r_us)
+                {
+                    r_histogram.resize(r_us + 1, 0);
+                }
+                r_histogram[r_us]++;
+            }
+            else
+            {
+                printf("E2 r ovf with %d us", r_us);
+                rh_ovf++;
+            }
+
+            if (l_us < 250)
+            {
+                if (l_histogram.size() < l_us)
+                {
+                    l_histogram.resize(l_us + 1, 0);
+                }
+                l_histogram[l_us]++;
+            }
+            else
+            {
+                printf("E2 l ovf with %d us", l_us);
+                lh_ovf++;
+            }
+
+            if (s_us < 250)
+            {
+                if (s_histogram.size() < s_us)
+                {
+                    s_histogram.resize(s_us + 1, 0);
+                }
+                s_histogram[s_us]++;
+            }
+            else
+            {
+                printf("E2 s ovf with %d us", s_us);
+                sh_ovf++;
+            }
         }
         else if (g_init_args.ecat_device == 2)
         {
@@ -2275,6 +2353,10 @@ void *ethercatThread1(void *data)
             shm_msgs_->rcv_avg2 = rat_avg;
             shm_msgs_->rcv_max2 = rmax;
             int max_us = 29;
+
+            shm_msgs_->r_us2 = r_us;
+            shm_msgs_->l_us2 = l_us;
+            shm_msgs_->s_us2 = s_us;
 
             if (r_us >= 0 && r_us < max_us)
             {
@@ -2302,6 +2384,48 @@ void *ethercatThread1(void *data)
             {
                 shm_msgs_->rcv2_h[max_us]++;
             }
+
+            if (r_us < 250)
+            {
+                if (r_histogram.size() < r_us)
+                {
+                    r_histogram.resize(r_us + 1, 0);
+                }
+                r_histogram[r_us]++;
+            }
+            else
+            {
+                printf("E2 r ovf with %d us", r_us);
+                rh_ovf++;
+            }
+
+            if (l_us < 250)
+            {
+                if (l_histogram.size() < l_us)
+                {
+                    l_histogram.resize(l_us + 1, 0);
+                }
+                l_histogram[l_us]++;
+            }
+            else
+            {
+                printf("E2 l ovf with %d us", l_us);
+                lh_ovf++;
+            }
+
+            if (s_us < 250)
+            {
+                if (s_histogram.size() < s_us)
+                {
+                    s_histogram.resize(s_us + 1, 0);
+                }
+                s_histogram[s_us]++;
+            }
+            else
+            {
+                printf("E2 s ovf with %d us", s_us);
+                sh_ovf++;
+            }
         }
 
         cycle_count++;
@@ -2319,6 +2443,136 @@ void *ethercatThread1(void *data)
     printf("ELMO : Checking EC STATE ... \n");
     ec_statecheck(0, EC_STATE_PRE_OP, EC_TIMEOUTSTATE);
     printf("ELMO : Checking EC STATE Complete \n");
+
+    usleep(1000000 * g_init_args.ecat_device);
+
+    printf("================================================================\n");
+
+    printf("ELMO %d DIAGNOSE : \n", g_init_args.ecat_device);
+    printf("RECEIVE TOTAL OVF : %d\n", rh_ovf);
+
+    int h_length = r_histogram.size();
+    int length = 0;
+    for (int i = 0; i < h_length; i++)
+    {
+        if (r_histogram[i] != 0)
+        {
+
+            length = intlength(r_histogram[i]) - intlength(i);
+
+            if (length > 0)
+            {
+                for (int j = 0; j < length; j++)
+                {
+                    printf(" ");
+                }
+            }
+
+            printf("%d ", i);
+        }
+    }
+
+    printf("\n");
+    for (int i = 0; i < h_length; i++)
+    {
+        if (r_histogram[i] != 0)
+        {
+            length = intlength(r_histogram[i]) - intlength(i);
+
+            if (length < 0)
+            {
+                for (int i = 0; i < -length; i++)
+                {
+                    printf(" ");
+                }
+            }
+            printf("%d ", r_histogram[i]);
+        }
+    }
+
+    printf("\n");
+
+    printf("SEND TOTAL OVF : %d\n", sh_ovf);
+    h_length = s_histogram.size();
+    length = 0;
+    for (int i = 0; i < h_length; i++)
+    {
+
+        if (s_histogram[i] != 0)
+        {
+            length = intlength(s_histogram[i]) - intlength(i);
+
+            if (length > 0)
+            {
+                for (int j = 0; j < length; j++)
+                {
+                    printf(" ");
+                }
+            }
+
+            printf("%d ", i);
+        }
+    }
+
+    printf("\n");
+    for (int i = 0; i < h_length; i++)
+    {
+        if (s_histogram[i] != 0)
+        {
+            length = intlength(s_histogram[i]) - intlength(i);
+            if (length < 0)
+            {
+                for (int j = 0; j < -length; j++)
+                {
+                    printf(" ");
+                }
+            }
+            printf("%d ", s_histogram[i]);
+        }
+    }
+    printf("\n");
+
+    printf("LATENCY TOTAL OVF : %d\n", lh_ovf);
+    h_length = l_histogram.size();
+    length = 0;
+    for (int i = 0; i < h_length; i++)
+    {
+        if (l_histogram[i] != 0)
+        {
+
+            length = intlength(l_histogram[i]) - intlength(i);
+
+            if (length > 0)
+            {
+                for (int j = 0; j < length; j++)
+                {
+                    printf(" ");
+                }
+            }
+
+            printf("%d ", i);
+        }
+    }
+
+    printf("\n");
+    for (int i = 0; i < h_length; i++)
+    {
+        if (l_histogram[i] != 0)
+        {
+            length = intlength(l_histogram[i]) - intlength(i);
+            if (length < 0)
+            {
+                for (int j = 0; j < -length; j++)
+                {
+                    printf(" ");
+                }
+            }
+            printf("%d ", l_histogram[i]);
+        }
+    }
+    printf("\n");
+
+    printf("================================================================\n");
 
     return (void *)NULL;
 }

@@ -9,8 +9,8 @@ int main(int argc, char **argv)
     TocabiInitArgs init_args;
     strcpy(init_args.port1, "rteth1");
     strcpy(init_args.port2, "rteth0");
-    // strcpy(init_args.port1, "enp3s0f1");
-    // strcpy(init_args.port2, "enp3s0f0");
+    // strcpy(init_args.port1, "enp7s0f1");
+    // strcpy(init_args.port2, "enp7s0f0");
 
     init_args.period_ns = 500 * 1000;
     init_args.ecat_slave_num = 18;

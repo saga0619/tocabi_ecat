@@ -16,6 +16,8 @@
 #include "tocabi_ecat/ecat_settings.h"
 #include "shm_msgs.h"
 
+#include <vector>
+
 struct TocabiInitArgs
 {
     char port1[20];
