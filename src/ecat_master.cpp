@@ -196,6 +196,11 @@ std::vector<int> r_histogram;
 std::vector<int> l_histogram;
 std::vector<int> s_histogram;
 
+std::vector<int> r_ovf_list;
+std::vector<int> l_ovf_list;
+std::vector<int> s_ovf_list;
+
+
 int rh_ovf = 0;
 int lh_ovf = 0;
 int sh_ovf = 0;
@@ -922,6 +927,11 @@ bool initTocabiSystem(const TocabiInitArgs &args)
     printf("ELMO %d : ec_init on %s %s succeeded.\n", args.ecat_device, args.port1, args.port2);
 
     return true;
+}
+
+void shutdownSystem()
+{
+    shm_msgs_->shutdown = true;
 }
 
 void cleanupTocabiSystem()
@@ -2311,6 +2321,7 @@ void *ethercatThread1(void *data)
             else
             {
                 printf("E2 r ovf with %d us", r_us);
+                r_ovf_list.push_back(r_us);
                 rh_ovf++;
             }
 
@@ -2325,6 +2336,7 @@ void *ethercatThread1(void *data)
             else
             {
                 printf("E2 l ovf with %d us", l_us);
+                l_ovf_list.push_back(l_us);
                 lh_ovf++;
             }
 
@@ -2339,6 +2351,7 @@ void *ethercatThread1(void *data)
             else
             {
                 printf("E2 s ovf with %d us", s_us);
+                s_ovf_list.push_back(s_us);
                 sh_ovf++;
             }
         }
@@ -2396,6 +2409,7 @@ void *ethercatThread1(void *data)
             else
             {
                 printf("E2 r ovf with %d us", r_us);
+                r_ovf_list.push_back(r_us);
                 rh_ovf++;
             }
 
@@ -2410,6 +2424,8 @@ void *ethercatThread1(void *data)
             else
             {
                 printf("E2 l ovf with %d us", l_us);
+                l_ovf_list.push_back(l_us);
+
                 lh_ovf++;
             }
 
@@ -2424,6 +2440,8 @@ void *ethercatThread1(void *data)
             else
             {
                 printf("E2 s ovf with %d us", s_us);
+                s_ovf_list.push_back(s_us);
+
                 sh_ovf++;
             }
         }
@@ -2471,8 +2489,8 @@ void *ethercatThread1(void *data)
             printf("%d ", i);
         }
     }
-
     printf("\n");
+
     for (int i = 0; i < h_length; i++)
     {
         if (r_histogram[i] != 0)
@@ -2487,6 +2505,17 @@ void *ethercatThread1(void *data)
                 }
             }
             printf("%d ", r_histogram[i]);
+        }
+    }
+    printf("\n");
+
+    if(rh_ovf > 0)
+    {    
+        printf("OVF LIST : ");
+
+        for(int i=0;i<r_ovf_list.size();i++)
+        {
+            printf("  %d",r_ovf_list[i]);
         }
     }
 
@@ -2532,6 +2561,18 @@ void *ethercatThread1(void *data)
     }
     printf("\n");
 
+    if(sh_ovf > 0)
+    {    
+        printf("OVF LIST : ");
+
+        for(int i=0;i<s_ovf_list.size();i++)
+        {
+            printf("  %d",s_ovf_list[i]);
+        }
+    }
+
+    printf("\n");
+    
     printf("LATENCY TOTAL OVF : %d\n", lh_ovf);
     h_length = l_histogram.size();
     length = 0;
@@ -2571,7 +2612,17 @@ void *ethercatThread1(void *data)
         }
     }
     printf("\n");
+    if(lh_ovf > 0)
+    {    
+        printf("OVF LIST : ");
 
+        for(int i=0;i<l_ovf_list.size();i++)
+        {
+            printf("  %d",l_ovf_list[i]);
+        }
+    }
+
+    printf("\n");
     printf("================================================================\n");
 
     return (void *)NULL;
@@ -3611,7 +3662,7 @@ void findZeroPoint(int slv_number, double time_now_)
         {
             printf("%s ELMO %d : WARNING! : %s homming not turning off! %s\n", cred, g_init_args.ecat_device, ELMO_NAME[slv_number], creset);
             state_zp_[JointMap2[slv_number]] = ZSTATE::ZP_NOT_ENOUGH_HOMMING;
-            elmofz[slv_number].findZeroSequence = 8;
+            elmofz[slv_number].findZeroSequence = 7;
             elmofz[slv_number].result = ElmoHommingStatus::FAILURE;
             elmofz[slv_number].initTime = time_now_;
         }

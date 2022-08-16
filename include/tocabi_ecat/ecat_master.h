@@ -229,3 +229,5 @@ void getErrorName(int err_register, char *err);
 
 long getTimeDiff(struct timespec &from, struct timespec &to);
 long getTimeDiff(struct timespec &a);
+
+void shutdownSystem();

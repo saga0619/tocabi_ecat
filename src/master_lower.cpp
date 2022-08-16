@@ -1,9 +1,16 @@
 #include "tocabi_ecat/ecat_master.h"
 #include "sys/mman.h"
+#include <signal.h>
+
+void SIGINT_handler(int sig)
+{
+    shutdownSystem();
+}
 
 int main(int argc, char **argv)
 {
     mlockall(MCL_CURRENT | MCL_FUTURE);
+    signal(SIGINT, SIGINT_handler);
 
     TocabiInitArgs init_args;
     // strcpy(init_args.port1,"enp7s0f3");
@@ -69,7 +76,7 @@ int main(int argc, char **argv)
         printf("pthread setschedpolicy failed\n");
         return ret;
     }
-    param.sched_priority = 93;
+    param.sched_priority = 47;
     ret = pthread_attr_setschedparam(&attr, &param);
     if (ret)
     {
@@ -83,7 +90,7 @@ int main(int argc, char **argv)
         printf("pthread setschedpolicy failed\n");
         return ret;
     }
-    param2.sched_priority = 89;
+    param2.sched_priority = 39;
     ret = pthread_attr_setschedparam(&attr2, &param2);
     if (ret)
     {
