@@ -86,9 +86,11 @@ int main()
 
     // printf("%6.3f %6.3f %6.3f %6.3f \n", shm_msgs_->pos_virtual[3], shm_msgs_->pos_virtual[4], shm_msgs_->pos_virtual[5], shm_msgs_->pos_virtual[6]);
     printf("FT L : %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", shm_msgs_->ftSensor[0], shm_msgs_->ftSensor[1], shm_msgs_->ftSensor[2], shm_msgs_->ftSensor[3], shm_msgs_->ftSensor[4], shm_msgs_->ftSensor[5]);
-  
+    
     printf("FT R : %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", shm_msgs_->ftSensor[6], shm_msgs_->ftSensor[7], shm_msgs_->ftSensor[8], shm_msgs_->ftSensor[9], shm_msgs_->ftSensor[10], shm_msgs_->ftSensor[11]);
-
+    
+    printf("hand FT : %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", shm_msgs_->ftSensor2[0], shm_msgs_->ftSensor2[1], shm_msgs_->ftSensor2[2], shm_msgs_->ftSensor2[3], shm_msgs_->ftSensor2[4], shm_msgs_->ftSensor2[5]);
+    
     printf("%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++]);
   
     printf("%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++]);
