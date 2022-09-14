@@ -192,13 +192,13 @@ int64 g_toff; //, gl_delta;
 
 TocabiInitArgs g_init_args;
 
-std::vector<int> r_histogram;
-std::vector<int> l_histogram;
-std::vector<int> s_histogram;
+// std::vector<int> r_histogram;
+// std::vector<int> l_histogram;
+// std::vector<int> s_histogram;
 
-std::vector<int> r_ovf_list;
-std::vector<int> l_ovf_list;
-std::vector<int> s_ovf_list;
+// std::vector<int> r_ovf_list;
+// std::vector<int> l_ovf_list;
+// std::vector<int> s_ovf_list;
 
 
 int rh_ovf = 0;
@@ -864,9 +864,9 @@ bool initTocabiArgs(const TocabiInitArgs &args)
     pthread_mutex_init(&rcv_mtx_, NULL);
     pthread_cond_init(&rcv_cond_, NULL);
 
-    r_histogram.reserve(251);
-    l_histogram.reserve(251);
-    s_histogram.reserve(251);
+    // r_histogram.reserve(251);
+    // l_histogram.reserve(251);
+    // s_histogram.reserve(251);
 
     Q_START = args.q_start_;
     PART_ELMO_DOF = args.ecat_slave_num;
@@ -2310,50 +2310,50 @@ void *ethercatThread1(void *data)
                 shm_msgs_->rcv_h[max_us]++;
             }
 
-            if (r_us < 250)
-            {
-                if (r_histogram.size() < r_us)
-                {
-                    r_histogram.resize(r_us + 1, 0);
-                }
-                r_histogram[r_us]++;
-            }
-            else
-            {
-                printf("E2 r ovf with %d us", r_us);
-                r_ovf_list.push_back(r_us);
-                rh_ovf++;
-            }
+            // if (r_us < 250)
+            // {
+            //     if (r_histogram.size() < r_us)
+            //     {
+            //         r_histogram.resize(r_us + 1, 0);
+            //     }
+            //     r_histogram[r_us]++;
+            // }
+            // else
+            // {
+            //     printf("E2 r ovf with %d us", r_us);
+            //     r_ovf_list.push_back(r_us);
+            //     rh_ovf++;
+            // }
 
-            if (l_us < 250)
-            {
-                if (l_histogram.size() < l_us)
-                {
-                    l_histogram.resize(l_us + 1, 0);
-                }
-                l_histogram[l_us]++;
-            }
-            else
-            {
-                printf("E2 l ovf with %d us", l_us);
-                l_ovf_list.push_back(l_us);
-                lh_ovf++;
-            }
+            // if (l_us < 250)
+            // {
+            //     if (l_histogram.size() < l_us)
+            //     {
+            //         l_histogram.resize(l_us + 1, 0);
+            //     }
+            //     l_histogram[l_us]++;
+            // }
+            // else
+            // {
+            //     printf("E2 l ovf with %d us", l_us);
+            //     l_ovf_list.push_back(l_us);
+            //     lh_ovf++;
+            // }
 
-            if (s_us < 250)
-            {
-                if (s_histogram.size() < s_us)
-                {
-                    s_histogram.resize(s_us + 1, 0);
-                }
-                s_histogram[s_us]++;
-            }
-            else
-            {
-                printf("E2 s ovf with %d us", s_us);
-                s_ovf_list.push_back(s_us);
-                sh_ovf++;
-            }
+            // if (s_us < 250)
+            // {
+            //     if (s_histogram.size() < s_us)
+            //     {
+            //         s_histogram.resize(s_us + 1, 0);
+            //     }
+            //     s_histogram[s_us]++;
+            // }
+            // else
+            // {
+            //     printf("E2 s ovf with %d us", s_us);
+            //     s_ovf_list.push_back(s_us);
+            //     sh_ovf++;
+            // }
         }
         else if (g_init_args.ecat_device == 2)
         {
@@ -2398,52 +2398,52 @@ void *ethercatThread1(void *data)
                 shm_msgs_->rcv2_h[max_us]++;
             }
 
-            if (r_us < 250)
-            {
-                if (r_histogram.size() < r_us)
-                {
-                    r_histogram.resize(r_us + 1, 0);
-                }
-                r_histogram[r_us]++;
-            }
-            else
-            {
-                printf("E2 r ovf with %d us", r_us);
-                r_ovf_list.push_back(r_us);
-                rh_ovf++;
-            }
+            // if (r_us < 250)
+            // {
+            //     if (r_histogram.size() < r_us)
+            //     {
+            //         r_histogram.resize(r_us + 1, 0);
+            //     }
+            //     r_histogram[r_us]++;
+            // }
+            // else
+            // {
+            //     printf("E2 r ovf with %d us", r_us);
+            //     r_ovf_list.push_back(r_us);
+            //     rh_ovf++;
+            // }
 
-            if (l_us < 250)
-            {
-                if (l_histogram.size() < l_us)
-                {
-                    l_histogram.resize(l_us + 1, 0);
-                }
-                l_histogram[l_us]++;
-            }
-            else
-            {
-                printf("E2 l ovf with %d us", l_us);
-                l_ovf_list.push_back(l_us);
+            // if (l_us < 250)
+            // {
+            //     if (l_histogram.size() < l_us)
+            //     {
+            //         l_histogram.resize(l_us + 1, 0);
+            //     }
+            //     l_histogram[l_us]++;
+            // }
+            // else
+            // {
+            //     printf("E2 l ovf with %d us", l_us);
+            //     l_ovf_list.push_back(l_us);
 
-                lh_ovf++;
-            }
+            //     lh_ovf++;
+            // }
 
-            if (s_us < 250)
-            {
-                if (s_histogram.size() < s_us)
-                {
-                    s_histogram.resize(s_us + 1, 0);
-                }
-                s_histogram[s_us]++;
-            }
-            else
-            {
-                printf("E2 s ovf with %d us", s_us);
-                s_ovf_list.push_back(s_us);
+            // if (s_us < 250)
+            // {
+            //     if (s_histogram.size() < s_us)
+            //     {
+            //         s_histogram.resize(s_us + 1, 0);
+            //     }
+            //     s_histogram[s_us]++;
+            // }
+            // else
+            // {
+            //     printf("E2 s ovf with %d us", s_us);
+            //     s_ovf_list.push_back(s_us);
 
-                sh_ovf++;
-            }
+            //     sh_ovf++;
+            // }
         }
 
         cycle_count++;
@@ -2462,168 +2462,168 @@ void *ethercatThread1(void *data)
     ec_statecheck(0, EC_STATE_PRE_OP, EC_TIMEOUTSTATE);
     printf("ELMO : Checking EC STATE Complete \n");
 
-    usleep(1000000 * g_init_args.ecat_device);
+    // usleep(1000000 * g_init_args.ecat_device);
 
-    printf("================================================================\n");
+    // printf("================================================================\n");
 
-    printf("ELMO %d DIAGNOSE : \n", g_init_args.ecat_device);
-    printf("RECEIVE TOTAL OVF : %d\n", rh_ovf);
+    // printf("ELMO %d DIAGNOSE : \n", g_init_args.ecat_device);
+    // printf("RECEIVE TOTAL OVF : %d\n", rh_ovf);
 
-    int h_length = r_histogram.size();
-    int length = 0;
-    for (int i = 0; i < h_length; i++)
-    {
-        if (r_histogram[i] != 0)
-        {
+    // int h_length = r_histogram.size();
+    // int length = 0;
+    // for (int i = 0; i < h_length; i++)
+    // {
+    //     if (r_histogram[i] != 0)
+    //     {
 
-            length = intlength(r_histogram[i]) - intlength(i);
+    //         length = intlength(r_histogram[i]) - intlength(i);
 
-            if (length > 0)
-            {
-                for (int j = 0; j < length; j++)
-                {
-                    printf(" ");
-                }
-            }
+    //         if (length > 0)
+    //         {
+    //             for (int j = 0; j < length; j++)
+    //             {
+    //                 printf(" ");
+    //             }
+    //         }
 
-            printf("%d ", i);
-        }
-    }
-    printf("\n");
+    //         printf("%d ", i);
+    //     }
+    // }
+    // printf("\n");
 
-    for (int i = 0; i < h_length; i++)
-    {
-        if (r_histogram[i] != 0)
-        {
-            length = intlength(r_histogram[i]) - intlength(i);
+    // for (int i = 0; i < h_length; i++)
+    // {
+    //     if (r_histogram[i] != 0)
+    //     {
+    //         length = intlength(r_histogram[i]) - intlength(i);
 
-            if (length < 0)
-            {
-                for (int i = 0; i < -length; i++)
-                {
-                    printf(" ");
-                }
-            }
-            printf("%d ", r_histogram[i]);
-        }
-    }
-    printf("\n");
+    //         if (length < 0)
+    //         {
+    //             for (int i = 0; i < -length; i++)
+    //             {
+    //                 printf(" ");
+    //             }
+    //         }
+    //         printf("%d ", r_histogram[i]);
+    //     }
+    // }
+    // printf("\n");
 
-    if(rh_ovf > 0)
-    {    
-        printf("OVF LIST : ");
+    // if(rh_ovf > 0)
+    // {    
+    //     printf("OVF LIST : ");
 
-        for(int i=0;i<r_ovf_list.size();i++)
-        {
-            printf("  %d",r_ovf_list[i]);
-        }
-    }
+    //     for(int i=0;i<r_ovf_list.size();i++)
+    //     {
+    //         printf("  %d",r_ovf_list[i]);
+    //     }
+    // }
 
-    printf("\n");
+    // printf("\n");
 
-    printf("SEND TOTAL OVF : %d\n", sh_ovf);
-    h_length = s_histogram.size();
-    length = 0;
-    for (int i = 0; i < h_length; i++)
-    {
+    // printf("SEND TOTAL OVF : %d\n", sh_ovf);
+    // h_length = s_histogram.size();
+    // length = 0;
+    // for (int i = 0; i < h_length; i++)
+    // {
 
-        if (s_histogram[i] != 0)
-        {
-            length = intlength(s_histogram[i]) - intlength(i);
+    //     if (s_histogram[i] != 0)
+    //     {
+    //         length = intlength(s_histogram[i]) - intlength(i);
 
-            if (length > 0)
-            {
-                for (int j = 0; j < length; j++)
-                {
-                    printf(" ");
-                }
-            }
+    //         if (length > 0)
+    //         {
+    //             for (int j = 0; j < length; j++)
+    //             {
+    //                 printf(" ");
+    //             }
+    //         }
 
-            printf("%d ", i);
-        }
-    }
+    //         printf("%d ", i);
+    //     }
+    // }
 
-    printf("\n");
-    for (int i = 0; i < h_length; i++)
-    {
-        if (s_histogram[i] != 0)
-        {
-            length = intlength(s_histogram[i]) - intlength(i);
-            if (length < 0)
-            {
-                for (int j = 0; j < -length; j++)
-                {
-                    printf(" ");
-                }
-            }
-            printf("%d ", s_histogram[i]);
-        }
-    }
-    printf("\n");
+    // printf("\n");
+    // for (int i = 0; i < h_length; i++)
+    // {
+    //     if (s_histogram[i] != 0)
+    //     {
+    //         length = intlength(s_histogram[i]) - intlength(i);
+    //         if (length < 0)
+    //         {
+    //             for (int j = 0; j < -length; j++)
+    //             {
+    //                 printf(" ");
+    //             }
+    //         }
+    //         printf("%d ", s_histogram[i]);
+    //     }
+    // }
+    // printf("\n");
 
-    if(sh_ovf > 0)
-    {    
-        printf("OVF LIST : ");
+    // if(sh_ovf > 0)
+    // {    
+    //     printf("OVF LIST : ");
 
-        for(int i=0;i<s_ovf_list.size();i++)
-        {
-            printf("  %d",s_ovf_list[i]);
-        }
-    }
+    //     for(int i=0;i<s_ovf_list.size();i++)
+    //     {
+    //         printf("  %d",s_ovf_list[i]);
+    //     }
+    // }
 
-    printf("\n");
+    // printf("\n");
     
-    printf("LATENCY TOTAL OVF : %d\n", lh_ovf);
-    h_length = l_histogram.size();
-    length = 0;
-    for (int i = 0; i < h_length; i++)
-    {
-        if (l_histogram[i] != 0)
-        {
+    // printf("LATENCY TOTAL OVF : %d\n", lh_ovf);
+    // h_length = l_histogram.size();
+    // length = 0;
+    // for (int i = 0; i < h_length; i++)
+    // {
+    //     if (l_histogram[i] != 0)
+    //     {
 
-            length = intlength(l_histogram[i]) - intlength(i);
+    //         length = intlength(l_histogram[i]) - intlength(i);
 
-            if (length > 0)
-            {
-                for (int j = 0; j < length; j++)
-                {
-                    printf(" ");
-                }
-            }
+    //         if (length > 0)
+    //         {
+    //             for (int j = 0; j < length; j++)
+    //             {
+    //                 printf(" ");
+    //             }
+    //         }
 
-            printf("%d ", i);
-        }
-    }
+    //         printf("%d ", i);
+    //     }
+    // }
 
-    printf("\n");
-    for (int i = 0; i < h_length; i++)
-    {
-        if (l_histogram[i] != 0)
-        {
-            length = intlength(l_histogram[i]) - intlength(i);
-            if (length < 0)
-            {
-                for (int j = 0; j < -length; j++)
-                {
-                    printf(" ");
-                }
-            }
-            printf("%d ", l_histogram[i]);
-        }
-    }
-    printf("\n");
-    if(lh_ovf > 0)
-    {    
-        printf("OVF LIST : ");
+    // printf("\n");
+    // for (int i = 0; i < h_length; i++)
+    // {
+    //     if (l_histogram[i] != 0)
+    //     {
+    //         length = intlength(l_histogram[i]) - intlength(i);
+    //         if (length < 0)
+    //         {
+    //             for (int j = 0; j < -length; j++)
+    //             {
+    //                 printf(" ");
+    //             }
+    //         }
+    //         printf("%d ", l_histogram[i]);
+    //     }
+    // }
+    // printf("\n");
+    // if(lh_ovf > 0)
+    // {    
+    //     printf("OVF LIST : ");
 
-        for(int i=0;i<l_ovf_list.size();i++)
-        {
-            printf("  %d",l_ovf_list[i]);
-        }
-    }
+    //     for(int i=0;i<l_ovf_list.size();i++)
+    //     {
+    //         printf("  %d",l_ovf_list[i]);
+    //     }
+    // }
 
-    printf("\n");
-    printf("================================================================\n");
+    // printf("\n");
+    // printf("================================================================\n");
 
     return (void *)NULL;
 }

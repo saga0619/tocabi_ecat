@@ -9,12 +9,13 @@ add_compile_options(-O)
 
 execute_process(COMMAND uname -r OUTPUT_VARIABLE UNAME_RES OUTPUT_STRIP_TRAILING_WHITESPACE)
 message("-- kernel version : " ${UNAME_RES})
-execute_process(COMMAND xeno-config --posix --cflags OUTPUT_VARIABLE XENO_CFLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
+#execute_process(COMMAND xeno-config --posix --cflags OUTPUT_VARIABLE XENO_CFLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-execute_process(COMMAND xeno-config --posix --ldflags OUTPUT_VARIABLE XENO_LDFLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
+#execute_process(COMMAND xeno-config --posix --ldflags OUTPUT_VARIABLE XENO_LDFLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
 #message(" xeno flags : " ${XENO_CFLAGS})
 string(FIND ${UNAME_RES} "xenomai" wsloc)
 
+LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 
 if(${wsloc} EQUAL -1 )
@@ -27,7 +28,7 @@ else()
   set(COMPILE_REAL TRUE)
 endif() 
 
-
+find_package(Xenomai REQUIRED)
 find_package(catkin REQUIRED COMPONENTS roscpp)
 find_package(tocabi_lib COMPONENTS)
 
@@ -61,27 +62,34 @@ add_executable(watcher src/watcher.cpp)
 
 # add_executable(watcher2 src/watcher_status.cpp)
 
+target_include_directories(tocabi_ecat PRIVATE ${XENOMAI_POSIX_INCLUDE_DIRS})
+target_include_directories(tocabi_ecat_lower PRIVATE ${XENOMAI_POSIX_INCLUDE_DIRS})
+target_include_directories(tocabi_ecat_upper PRIVATE ${XENOMAI_POSIX_INCLUDE_DIRS})
+
 
 target_link_libraries(tocabi_ecat
 -lsoem
--lpthread
-
-  ${XENO_CFLAGS}
-  ${XENO_LDFLAGS}
+  ${XENOMAI_POSIX_LIBRARIES}
+  #${XENO_CFLAGS}
+  #${XENO_LDFLAGS}
 )
 target_link_libraries(tocabi_ecat_lower
   -lsoem
-  -lpthread
-  ${XENO_CFLAGS}
-  ${XENO_LDFLAGS}
+  ${XENOMAI_POSIX_LIBRARIES}
+
+  #${XENO_CFLAGS}
+  #${XENO_LDFLAGS}
 )
 target_link_libraries(tocabi_ecat_upper
   -lsoem 
-  -lpthread
-  ${XENO_CFLAGS}
-  ${XENO_LDFLAGS}
+  ${XENOMAI_POSIX_LIBRARIES}
+  #${XENO_CFLAGS}
+  #${XENO_LDFLAGS}
 )
 
+target_compile_definitions(tocabi_ecat PRIVATE ${XENOMAI_POSIX_DEFINITIONS})
+target_compile_definitions(tocabi_ecat_lower PRIVATE ${XENOMAI_POSIX_DEFINITIONS})
+target_compile_definitions(tocabi_ecat_upper PRIVATE ${XENOMAI_POSIX_DEFINITIONS})
 
 
 endif()
