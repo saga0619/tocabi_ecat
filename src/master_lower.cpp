@@ -84,19 +84,19 @@ int main(int argc, char **argv)
         return ret;
     }
 
-    ret = pthread_attr_setschedpolicy(&attr2, SCHED_FIFO);
-    if (ret)
-    {
-        printf("pthread setschedpolicy failed\n");
-        return ret;
-    }
-    param2.sched_priority = 39;
-    ret = pthread_attr_setschedparam(&attr2, &param2);
-    if (ret)
-    {
-        printf("pthread setschedparam failed\n");
-        return ret;
-    }
+    // ret = pthread_attr_setschedpolicy(&attr2, SCHED_FIFO);
+    // if (ret)
+    // {
+    //     printf("pthread setschedpolicy failed\n");
+    //     return ret;
+    // }
+    // param2.sched_priority = 39;
+    // ret = pthread_attr_setschedparam(&attr2, &param2);
+    // if (ret)
+    // {
+    //     printf("pthread setschedparam failed\n");
+    //     return ret;
+    // }
 
     cpu_set_t cpuset;
     CPU_ZERO(&cpuset);
@@ -126,12 +126,12 @@ int main(int argc, char **argv)
         return ret;
     }    
 
-    ret = pthread_attr_setinheritsched(&attr2, PTHREAD_EXPLICIT_SCHED);
-    if (ret)
-    {
-        printf("pthread setinheritsched failed\n");
-        return ret;
-    }
+    // ret = pthread_attr_setinheritsched(&attr2, PTHREAD_EXPLICIT_SCHED);
+    // if (ret)
+    // {
+    //     printf("pthread setinheritsched failed\n");
+    //     return ret;
+    // }
     // printf("[ECAT - LOW] start init process\n");
 
     // printf("[ECAT - INFO] start init process\n");
@@ -151,12 +151,12 @@ int main(int argc, char **argv)
         printf("create pthread 2 failed\n");
         return ret;
     }
-    ret = pthread_create(&thread3, &attr2, ethercatThread3, &init_args);
-    if (ret)
-    {
-        printf("create pthread 2 failed\n");
-        return ret;
-    }
+    // ret = pthread_create(&thread3, &attr2, ethercatThread3, &init_args);
+    // if (ret)
+    // {
+    //     printf("create pthread 2 failed\n");
+    //     return ret;
+    // }
     pthread_attr_destroy(&attr);
     pthread_attr_destroy(&attr2);
 
@@ -168,9 +168,9 @@ int main(int argc, char **argv)
     ret = pthread_join(thread2, NULL);
     if (ret)
         printf("join pthread failed: %m\n");
-    ret = pthread_join(thread3, NULL);
-    if (ret)
-        printf("join pthread failed: %m\n");
+    // ret = pthread_join(thread3, NULL);
+    // if (ret)
+    //     printf("join pthread failed: %m\n");
 
     printf("[ECAT - INFO] cleaning up\n");
     cleanupTocabiSystem();
