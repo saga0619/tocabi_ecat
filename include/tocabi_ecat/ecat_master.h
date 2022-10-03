@@ -133,7 +133,10 @@ struct ElmoHomming
     double desPos;
     double posStart;
     double posEnd;
+    double pos_turnedoff;
+    double pos_turnedon;
     double req_length = 0.2;
+    double min_black_length = 0.05;
     double firstPos;
     double init_direction = 1;
     double hommingLength = 0.3;

@@ -200,7 +200,6 @@ TocabiInitArgs g_init_args;
 // std::vector<int> l_ovf_list;
 // std::vector<int> s_ovf_list;
 
-
 int rh_ovf = 0;
 int lh_ovf = 0;
 int sh_ovf = 0;
@@ -320,11 +319,11 @@ void cnt_print(int cnt)
 {
     if (cnt == 0)
     {
-        fprintf(stdout,"%d\t", cnt);
+        fprintf(stdout, "%d\t", cnt);
     }
     else
     {
-        fprintf(stdout,"%s%d\t%s", cred, cnt, creset);
+        fprintf(stdout, "%s%d\t%s", cred, cnt, creset);
     }
 }
 
@@ -416,36 +415,36 @@ void ecatDiagnoseOnChange()
         {
             if (link_lost1_p[i] != link_lost1[i])
             {
-                fprintf(stdout,"ECAT %d : Link Lost Event At slave %d port 0! \n", g_init_args.ecat_device, i);
+                fprintf(stdout, "ECAT %d : Link Lost Event At slave %d port 0! \n", g_init_args.ecat_device, i);
                 link_lost_b = true;
                 ll_p1 = i;
             }
             if (link_lost2_p[i] != link_lost2[i])
             {
-                fprintf(stdout,"ECAT %d : Link Lost Event At slave %d port 1! \n", g_init_args.ecat_device, i);
+                fprintf(stdout, "ECAT %d : Link Lost Event At slave %d port 1! \n", g_init_args.ecat_device, i);
                 link_lost_b = true;
                 ll_p2 = i;
             }
 
             if (fe_lost1_p[i] != fe_lost1[i])
             {
-                fprintf(stdout,"ECAT %d : CRC ERROR Event At slave %d port 0! \n", g_init_args.ecat_device, i);
+                fprintf(stdout, "ECAT %d : CRC ERROR Event At slave %d port 0! \n", g_init_args.ecat_device, i);
                 crc_error_b = true;
             }
             if (fe_lost2_p[i] != fe_lost2[i])
             {
-                fprintf(stdout,"ECAT %d : CRC ERROR Event! At slave %d port 1! \n", g_init_args.ecat_device, i);
+                fprintf(stdout, "ECAT %d : CRC ERROR Event! At slave %d port 1! \n", g_init_args.ecat_device, i);
                 crc_error_b = true;
             }
 
             if (ple_lost1_p[i] != ple_lost1[i])
             {
-                fprintf(stdout,"ECAT %d : RX Error Event! At slave %d port 0! \n", g_init_args.ecat_device, i);
+                fprintf(stdout, "ECAT %d : RX Error Event! At slave %d port 0! \n", g_init_args.ecat_device, i);
                 rx_error_b = true;
             }
             if (ple_lost2_p[i] != ple_lost2[i])
             {
-                fprintf(stdout,"ECAT %d : RX Error Event! At slave %d port 1! \n", g_init_args.ecat_device, i);
+                fprintf(stdout, "ECAT %d : RX Error Event! At slave %d port 1! \n", g_init_args.ecat_device, i);
 
                 rx_error_b = true;
             }
@@ -453,17 +452,17 @@ void ecatDiagnoseOnChange()
             if (fre_lost1_p[i] != fre_lost1[i])
             {
                 frd_error_b = true;
-                fprintf(stdout,"ECAT %d : Forwarded Error Event! At slave %d port 0! \n", g_init_args.ecat_device, i);
+                fprintf(stdout, "ECAT %d : Forwarded Error Event! At slave %d port 0! \n", g_init_args.ecat_device, i);
             }
             if (fre_lost2_p[i] != fre_lost2[i])
             {
                 frd_error_b = true;
-                fprintf(stdout,"ECAT %d : Forwarded Error Event! At slave %d port 1! \n", g_init_args.ecat_device, i);
+                fprintf(stdout, "ECAT %d : Forwarded Error Event! At slave %d port 1! \n", g_init_args.ecat_device, i);
             }
 
             if (process_unit_error_p[i] != process_unit_error[i])
             {
-                fprintf(stdout,"ECAT %d : EPU Error Event! At slave %d! \n", g_init_args.ecat_device, i);
+                fprintf(stdout, "ECAT %d : EPU Error Event! At slave %d! \n", g_init_args.ecat_device, i);
                 process_unit_error_b = true;
             }
         }
@@ -474,78 +473,78 @@ void ecatDiagnoseOnChange()
         if (link_lost_b)
         {
             // printf("ECAT %d : Link Lost Event! \n", g_init_args.ecat_device);
-            fprintf(stdout,"Link Lost Cnt 0 : \t");
+            fprintf(stdout, "Link Lost Cnt 0 : \t");
             for (int i = 0; i < ec_slavecount; i++)
             {
                 cnt_print(link_lost1[i]);
             }
-            fprintf(stdout,"\nLink Lost Cnt 1 : \t");
+            fprintf(stdout, "\nLink Lost Cnt 1 : \t");
             for (int i = 0; i < ec_slavecount; i++)
             {
                 cnt_print(link_lost2[i]);
             }
-            fprintf(stdout,"\n\n");
+            fprintf(stdout, "\n\n");
         }
 
         if (crc_error_b)
         {
             // printf("ECAT %d : CRC ERROR Event! \n", g_init_args.ecat_device);
-            fprintf(stdout,"  CRC Err Cnt 0 : \t");
+            fprintf(stdout, "  CRC Err Cnt 0 : \t");
             for (int i = 0; i < ec_slavecount; i++)
             {
                 cnt_print(fe_lost1[i]);
             }
-            fprintf(stdout,"\n  CRC Err Cnt 1 : \t");
+            fprintf(stdout, "\n  CRC Err Cnt 1 : \t");
             for (int i = 0; i < ec_slavecount; i++)
             {
                 cnt_print(fe_lost2[i]);
             }
-            fprintf(stdout,"\n\n");
+            fprintf(stdout, "\n\n");
         }
 
         if (frd_error_b)
         {
 
             // printf("ECAT %d : Forwarded Error Event! \n", g_init_args.ecat_device);
-            fprintf(stdout," Forw Err Cnt 0 : \t");
+            fprintf(stdout, " Forw Err Cnt 0 : \t");
             for (int i = 0; i < ec_slavecount; i++)
             {
                 cnt_print(fre_lost1[i]);
             }
 
-            fprintf(stdout,"\n Forw Err Cnt 1 : \t");
+            fprintf(stdout, "\n Forw Err Cnt 1 : \t");
             for (int i = 0; i < ec_slavecount; i++)
             {
                 cnt_print(fre_lost2[i]);
             }
-            fprintf(stdout,"\n\n");
+            fprintf(stdout, "\n\n");
         }
 
         if (rx_error_b)
         {
             // printf("ECAT %d : RX Error Event! \n", g_init_args.ecat_device);
-            fprintf(stdout,"   RX Err Cnt 0 : \t");
+            fprintf(stdout, "   RX Err Cnt 0 : \t");
             for (int i = 0; i < ec_slavecount; i++)
             {
                 cnt_print(ple_lost1[i]);
             }
-            fprintf(stdout,"\n   RX Err Cnt 1 : \t");
+            fprintf(stdout, "\n   RX Err Cnt 1 : \t");
             for (int i = 0; i < ec_slavecount; i++)
             {
                 cnt_print(ple_lost2[i]);
             }
-            fprintf(stdout,"\n\n");
+            fprintf(stdout, "\n\n");
         }
 
         if (process_unit_error_b)
         {
             // printf("ECAT %d : EPU Error Event! \n", g_init_args.ecat_device);
-            fprintf(stdout,"    EPU Err Cnt : \t");
+            fprintf(stdout, "    EPU Err Cnt : \t");
             for (int i = 0; i < ec_slavecount; i++)
             {
                 cnt_print(process_unit_error[i]);
             }
-            fprintf(stdout,"\n\n");
+            fprintf(stdout, "\n\n");
         }
     }
 
@@ -920,11 +919,11 @@ bool initTocabiSystem(const TocabiInitArgs &args)
     if (!ec_init_redundant(args.port1, ifname2))
     // if (!ec_init(args.port1))
     {
-        fprintf(stdout,"ELMO %d : No socket connection on %s / %s \nExcecute as root\n", args.ecat_device, args.port1, args.port2);
+        fprintf(stdout, "ELMO %d : No socket connection on %s / %s \nExcecute as root\n", args.ecat_device, args.port1, args.port2);
         return false;
     }
 
-    fprintf(stdout,"ELMO %d : ec_init on %s %s succeeded.\n", args.ecat_device, args.port1, args.port2);
+    fprintf(stdout, "ELMO %d : ec_init on %s %s succeeded.\n", args.ecat_device, args.port1, args.port2);
     fflush(stdout);
     return true;
 }
@@ -946,9 +945,9 @@ void *ethercatThread1(void *data)
 
     if (ec_config_init(FALSE) <= 0) // TRUE when using configtable to init slavtes, FALSE oherwise
     {
-        fprintf(stdout,"%sELMO : No slaves found!%s\n", cred, creset);
+        fprintf(stdout, "%sELMO : No slaves found!%s\n", cred, creset);
     }
-    fprintf(stdout,"ELMO %d : %d / %d slaves found and configured.\n", g_init_args.ecat_device, ec_slavecount, g_init_args.ecat_slave_num); // ec_slavecount -> slave num
+    fprintf(stdout, "ELMO %d : %d / %d slaves found and configured.\n", g_init_args.ecat_device, ec_slavecount, g_init_args.ecat_slave_num); // ec_slavecount -> slave num
 
     if (ec_slavecount == g_init_args.ecat_slave_num)
     {
@@ -956,7 +955,7 @@ void *ethercatThread1(void *data)
     }
     else
     {
-        fprintf(stdout,"ELMO %d : %d / %d slaves found and configured.\n", g_init_args.ecat_device, ec_slavecount, g_init_args.ecat_slave_num); // ec_slavecount -> slave num
+        fprintf(stdout, "ELMO %d : %d / %d slaves found and configured.\n", g_init_args.ecat_device, ec_slavecount, g_init_args.ecat_slave_num); // ec_slavecount -> slave num
         shm_msgs_->shutdown = true;
     }
     /** CompleteAccess disabled for Elmo driver */
@@ -964,7 +963,7 @@ void *ethercatThread1(void *data)
     {
         if (!(ec_slave[slave].CoEdetails & ECT_COEDET_SDOCA))
         {
-            fprintf(stdout,"ELMO %d : slave[%d] CA? : false , shutdown request \n ", g_init_args.ecat_device, slave);
+            fprintf(stdout, "ELMO %d : slave[%d] CA? : false , shutdown request \n ", g_init_args.ecat_device, slave);
         }
         ec_slave[slave].CoEdetails ^= ECT_COEDET_SDOCA;
     }
@@ -999,7 +998,7 @@ void *ethercatThread1(void *data)
     /** if CA disable => automapping works */
 
     if (init_args->verbose)
-        fprintf(stdout,"ELMO %d : EC CONFIG MAP\n", init_args->ecat_device);
+        fprintf(stdout, "ELMO %d : EC CONFIG MAP\n", init_args->ecat_device);
     fflush(stdout);
 
     int ecmap = ec_config_map(&IOmap);
@@ -1020,13 +1019,13 @@ void *ethercatThread1(void *data)
         printf("%s", ec_elist2string());
 
     if (init_args->verbose)
-        fprintf(stdout,"ELMO %d : EC WAITING STATE TO SAFE_OP\n", init_args->ecat_device);
+        fprintf(stdout, "ELMO %d : EC WAITING STATE TO SAFE_OP\n", init_args->ecat_device);
     ec_statecheck(0, EC_STATE_SAFE_OP, EC_TIMEOUTSTATE * 4);
     ec_readstate();
     /* wait for all slaves to reach SAFE_OP state */
     expectedWKC = (ec_group[0].outputsWKC * 2) + ec_group[0].inputsWKC;
     if (init_args->verbose)
-        fprintf(stdout,"ELMO %d : Request operational state for all slaves. Calculated workcounter : %d\n", init_args->ecat_device, expectedWKC);
+        fprintf(stdout, "ELMO %d : Request operational state for all slaves. Calculated workcounter : %d\n", init_args->ecat_device, expectedWKC);
 
     if (expectedWKC != 3 * init_args->ecat_slave_num)
     {
@@ -1069,9 +1068,9 @@ void *ethercatThread1(void *data)
         {
             if (ec_slave[slave - 1].state != EC_STATE_OPERATIONAL)
             {
-                fprintf(stdout,"%sELMO %d : EtherCAT State Operation Error : Slave %d State=0x%2.2x StatusCode=0x%4.4x : %s%s\n",
-                       cred, init_args->ecat_device, slave - 1, ec_slave[slave - 1].state, ec_slave[slave - 1].ALstatuscode,
-                       ec_ALstatuscode2string(ec_slave[slave - 1].ALstatuscode), creset);
+                fprintf(stdout, "%sELMO %d : EtherCAT State Operation Error : Slave %d State=0x%2.2x StatusCode=0x%4.4x : %s%s\n",
+                        cred, init_args->ecat_device, slave - 1, ec_slave[slave - 1].state, ec_slave[slave - 1].ALstatuscode,
+                        ec_ALstatuscode2string(ec_slave[slave - 1].ALstatuscode), creset);
             }
         }
         shm_msgs_->shutdown = true;
@@ -1117,7 +1116,7 @@ void *ethercatThread1(void *data)
 
     // Commutation Checking
     //  st_start_time = std::chrono::steady_clock::now(); // TODO:timespec
-    fprintf(stdout,"%sELMO %d : START Initialization Mode %s\n", cyellow, g_init_args.ecat_device, creset);
+    fprintf(stdout, "%sELMO %d : START Initialization Mode %s\n", cyellow, g_init_args.ecat_device, creset);
     fflush(stdout);
 
     if (g_init_args.ecat_device == 1)
@@ -1397,7 +1396,7 @@ void *ethercatThread1(void *data)
                     total_commutation_cnt++;
                     if (total_commutation_cnt < 8)
                         controlWordGenerate(rxPDO[i]->statusWord, txPDO[i]->controlWord);
-                    txPDO[i]->maxTorque = (uint16)500; // originaly 1000
+                    txPDO[i]->maxTorque = (uint16)100; // originaly 1000
                 }
             }
         }
@@ -1452,7 +1451,7 @@ void *ethercatThread1(void *data)
                         {
                             hommingElmo[START_N + slave - 1] = !hommingElmo[START_N + slave - 1];
                         }
-                        txPDO[slave - 1]->maxTorque = (uint16)500; // originaly 1000
+                        txPDO[slave - 1]->maxTorque = (uint16)100; // originaly 1000
                     }
                 }
             }
@@ -1730,7 +1729,7 @@ void *ethercatThread1(void *data)
     }
 
     if (!shm_msgs_->shutdown)
-        fprintf(stdout,"%sELMO %d : Control Mode Start ... at%ld %s\n", cgreen, g_init_args.ecat_device, cycle_count, creset);
+        fprintf(stdout, "%sELMO %d : Control Mode Start ... at%ld %s\n", cgreen, g_init_args.ecat_device, cycle_count, creset);
     fflush(stdout);
     // memset(joint_state_elmo_, ESTATE::OPERATION_READY, sizeof(int) * ec_slavecount);
     // st_start_time = std::chrono::steady_clock::now();
@@ -2513,7 +2512,7 @@ void *ethercatThread1(void *data)
     // printf("\n");
 
     // if(rh_ovf > 0)
-    // {    
+    // {
     //     printf("OVF LIST : ");
 
     //     for(int i=0;i<r_ovf_list.size();i++)
@@ -2565,7 +2564,7 @@ void *ethercatThread1(void *data)
     // printf("\n");
 
     // if(sh_ovf > 0)
-    // {    
+    // {
     //     printf("OVF LIST : ");
 
     //     for(int i=0;i<s_ovf_list.size();i++)
@@ -2575,7 +2574,7 @@ void *ethercatThread1(void *data)
     // }
 
     // printf("\n");
-    
+
     // printf("LATENCY TOTAL OVF : %d\n", lh_ovf);
     // h_length = l_histogram.size();
     // length = 0;
@@ -2616,7 +2615,7 @@ void *ethercatThread1(void *data)
     // }
     // printf("\n");
     // if(lh_ovf > 0)
-    // {    
+    // {
     //     printf("OVF LIST : ");
 
     //     for(int i=0;i<l_ovf_list.size();i++)
@@ -2761,7 +2760,7 @@ void *ethercatThread3(void *data)
 
                 if (abs(shm_msgs_->watchCount - shm_msgs_->watchCount2) > 10)
                 {
-                    printf("WATCHDOG 1 : WATCHDOG 2 ERROR!! W1 : %d W2 : %d, W2 l : %d\n", (int)shm_msgs_->watchCount, (int)shm_msgs_->watchCount2, shm_msgs_->wc2_level);
+                    fprintf(stdout, "WATCHDOG 1 : WATCHDOG 2 ERROR!! W1 : %d W2 : %d, W2 l : %d\n", (int)shm_msgs_->watchCount, (int)shm_msgs_->watchCount2, shm_msgs_->wc2_level);
                 }
             }
             else if (init_args->ecat_device == 2)
@@ -2771,7 +2770,7 @@ void *ethercatThread3(void *data)
 
                 if (abs(shm_msgs_->watchCount - shm_msgs_->watchCount2) > 10)
                 {
-                    printf("WATCHDOG 2 : WATCHDOG 1 ERROR!! W1 : %d W2 : %d, W2 l : %d\n", (int)shm_msgs_->watchCount, (int)shm_msgs_->watchCount2, shm_msgs_->wc1_level);
+                    fprintf(stdout, "WATCHDOG 2 : WATCHDOG 1 ERROR!! W1 : %d W2 : %d, W2 l : %d\n", (int)shm_msgs_->watchCount, (int)shm_msgs_->watchCount2, shm_msgs_->wc1_level);
                 }
             }
             printCount++;
@@ -2808,7 +2807,7 @@ void *ethercatThread3(void *data)
 
                 if (c_diff > 10)
                 {
-                    printf("WARN : C COUNT DIFF IS LARGE ! current diff : %d, init diff : %d ECAT 1 : %d ECAT 2: %d \n", (shm_msgs_->statusCount2 - shm_msgs_->statusCount), UPLOW_diff, (int)shm_msgs_->statusCount, (int)shm_msgs_->statusCount2);
+                    fprintf(stdout, "WARN : C COUNT DIFF IS LARGE ! current diff : %d, init diff : %d ECAT 1 : %d ECAT 2: %d \n", (shm_msgs_->statusCount2 - shm_msgs_->statusCount), UPLOW_diff, (int)shm_msgs_->statusCount, (int)shm_msgs_->statusCount2);
                 }
 
                 if (printCount >= 2000)
@@ -3056,13 +3055,13 @@ void checkJointSafety()
 
             if ((joint_lower_limit[START_N + i] > q_elmo_[START_N + i]))
             {
-                fprintf(stdout,"%sELMO %d %s : SAFETY LOCK - JOINT LIMIT : %f LIMIT : %f %s\n", cred, g_init_args.ecat_device, ELMO_NAME[START_N + i], q_elmo_[START_N + i], joint_lower_limit[START_N + i], creset);
+                fprintf(stdout, "%sELMO %d %s : SAFETY LOCK - JOINT LIMIT : %f LIMIT : %f %s\n", cred, g_init_args.ecat_device, ELMO_NAME[START_N + i], q_elmo_[START_N + i], joint_lower_limit[START_N + i], creset);
                 state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_JOINT_LIMIT;
                 ElmoSafteyMode[START_N + i] = 1;
             }
             else if ((joint_upper_limit[START_N + i] < q_elmo_[START_N + i]))
             {
-                fprintf(stdout,"%sELMO %d %s : SAFETY LOCK - JOINT LIMIT : %f LIMIT : %f %s\n", cred, g_init_args.ecat_device, ELMO_NAME[START_N + i], q_elmo_[START_N + i], joint_upper_limit[START_N + i], creset);
+                fprintf(stdout, "%sELMO %d %s : SAFETY LOCK - JOINT LIMIT : %f LIMIT : %f %s\n", cred, g_init_args.ecat_device, ELMO_NAME[START_N + i], q_elmo_[START_N + i], joint_upper_limit[START_N + i], creset);
 
                 state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_JOINT_LIMIT;
                 ElmoSafteyMode[START_N + i] = 1;
@@ -3070,7 +3069,7 @@ void checkJointSafety()
 
             if (joint_velocity_limit[START_N + i] < abs(q_dot_elmo_[START_N + i]))
             {
-                fprintf(stdout,"%sELMO %d %s : SAFETY LOCK - VELOCITY LIMIT %s\n", cred, g_init_args.ecat_device, ELMO_NAME[START_N + i], creset);
+                fprintf(stdout, "%sELMO %d %s : SAFETY LOCK - VELOCITY LIMIT %s\n", cred, g_init_args.ecat_device, ELMO_NAME[START_N + i], creset);
                 state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_VELOCITY_LIMIT;
                 ElmoSafteyMode[START_N + i] = 1;
             }
@@ -3306,7 +3305,7 @@ void getJointCommand()
                     {
                         errorTimes++;
                         if (errorTimes > 2)
-                            printf("%ld ELMO %d : commandCount Error wit sterror current : %d before : %d \n", (long)control_time_real_ / 1000, g_init_args.ecat_device, commandCount, commandCount_before);
+                            fprintf(stdout, "%ld ELMO %d : commandCount Error wit sterror current : %d before : %d \n", (long)control_time_real_ / 1000, g_init_args.ecat_device, commandCount, commandCount_before);
                         // std::cout << control_time_us_ << "ELMO_LOW : commandCount Error current : " << commandCount << " before : " << commandCount_before << std::'\n';
                         // std::cout << "stloop same cnt" << std::'\n';
                     }
@@ -3331,7 +3330,7 @@ void getJointCommand()
                     {
                         if (errorCount != commandCount)
                         {
-                            printf("%s %f ELMO %d : commandCount Warn! SAFETY LOCK%s\n", cred, control_time_real_, g_init_args.ecat_device, creset);
+                            fprintf(stdout, "%s %f ELMO %d : commandCount Warn! SAFETY LOCK%s\n", cred, control_time_real_, g_init_args.ecat_device, creset);
 
                             // std::cout << cred << control_time_us_ << "ELMO_LOW : commandCount Warn! SAFETY LOCK" << creset << std::'\n';
 
@@ -3627,11 +3626,11 @@ void findZeroPoint(int slv_number, double time_now_)
 {
     double fztime = 3.0;
     double fztime_manual = 300.0;
-    if (elmofz[slv_number].findZeroSequence == FZ_CHECKHOMMINGSTATUS)
+    if (elmofz[slv_number].findZeroSequence == FZ_CHECKHOMMINGSTATUS) // Check initial status of homming sensor
     {
         state_zp_[JointMap2[slv_number]] = ZSTATE::ZP_SEARCHING_ZP;
         // pub_to_gui(dc, "jointzp %d %d", slv_number, 0);
-        if (hommingElmo[slv_number])
+        if (hommingElmo[slv_number]) // Initial status of homming sensor is TRUE
         {
             // printf("init homming on : %d %7.3f\n", slv_number, time_now_);
             elmofz[slv_number].findZeroSequence = FZ_FINDHOMMINGSTART;
@@ -3639,7 +3638,7 @@ void findZeroPoint(int slv_number, double time_now_)
             elmofz[slv_number].initPos = q_elmo_[slv_number];
             elmofz[slv_number].firstPos = q_elmo_[slv_number];
         }
-        else
+        else // Initial status of homming sensor if FALSE
         {
 
             // printf("init homming off : %d %7.3f\n", slv_number, time_now_);
@@ -3653,71 +3652,133 @@ void findZeroPoint(int slv_number, double time_now_)
     {
         // go to + 0.3rad until homming sensor turn off
         ElmoMode[slv_number] = EM_POSITION;
-        q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].initPos, elmofz[slv_number].hommingLength, elmofz[slv_number].initTime, fztime);
+        q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].initPos, elmofz[slv_number].hommingLength*1.5, elmofz[slv_number].initTime, fztime*1.5);
 
-        if ((hommingElmo[slv_number] == 0) && (hommingElmo_before[slv_number] == 0))
+        if (!elmofz[slv_number].startFound)
         {
-            // printf("goto homming off : %d %7.3f\n", slv_number, time_now_);
-            // std::printf("motor " << slv_number << " seq 1 complete, wait 1 sec\n");
-            hommingElmo_before[slv_number] = hommingElmo[slv_number];
-            elmofz[slv_number].findZeroSequence = FZ_FINDHOMMINGEND;
-            elmofz[slv_number].initTime = time_now_;
-            elmofz[slv_number].posStart = q_elmo_[slv_number];
-            elmofz[slv_number].initPos = q_elmo_[slv_number];
+            if ((hommingElmo[slv_number] == 0) && (hommingElmo_before[slv_number] == 0)) // IF HOMMING IS OFF
+            {
+
+                elmofz[slv_number].pos_turnedoff = q_elmo_[slv_number];
+                elmofz[slv_number].startFound = true;
+                elmofz[slv_number].posStart = q_elmo_[slv_number];
+
+                // printf("search blank : %d\n", slv_number);
+
+                // printf("goto homming off : %d %7.3f\n", slv_number, time_now_);
+                // std::printf("motor " << slv_number << " seq 1 complete, wait 1 sec\n");
+                hommingElmo_before[slv_number] = hommingElmo[slv_number];
+            }
+        }
+        else
+        {
+            if ((hommingElmo[slv_number] == 0) && (hommingElmo_before[slv_number] == 0)) // IF HOMMING IS OFF CONT..
+            {
+                if (q_elmo_[slv_number] > elmofz[slv_number].pos_turnedoff + elmofz[slv_number].min_black_length)
+                {
+                    // printf("no blank!! find END!: %d\n", slv_number);
+
+                    elmofz[slv_number].findZeroSequence = FZ_FINDHOMMINGEND;
+                    elmofz[slv_number].initTime = time_now_;
+                    elmofz[slv_number].startFound = false;
+                    elmofz[slv_number].initPos = q_elmo_[slv_number];
+                    elmofz[slv_number].pos_turnedoff = q_elmo_[slv_number];
+                }
+
+                // printf("goto homming off : %d %7.3f\n", slv_number, time_now_);
+                // std::printf("motor " << slv_number << " seq 1 complete, wait 1 sec\n");
+                hommingElmo_before[slv_number] = hommingElmo[slv_number];
+            }
+            else if ((hommingElmo[slv_number] == 1) && (hommingElmo_before[slv_number] == 0)) // HOMMING IS TURNED ON?! ANOTHER SEGMENT!
+            {
+                // printf("turned on while blank!!: %d\n", slv_number);
+
+                elmofz[slv_number].pos_turnedon = q_elmo_[slv_number];
+                elmofz[slv_number].startFound = false;
+            }
         }
 
-        if (time_now_ > elmofz[slv_number].initTime + fztime)
+        if (time_now_ > elmofz[slv_number].initTime + fztime*1.5)
         {
             printf("%s ELMO %d : WARNING! : %s homming not turning off! %s\n", cred, g_init_args.ecat_device, ELMO_NAME[slv_number], creset);
             state_zp_[JointMap2[slv_number]] = ZSTATE::ZP_NOT_ENOUGH_HOMMING;
+            elmofz[slv_number].startFound = false;
             elmofz[slv_number].findZeroSequence = 7;
             elmofz[slv_number].result = ElmoHommingStatus::FAILURE;
             elmofz[slv_number].initTime = time_now_;
         }
+
+        // if joint is head yaw, some logics must be added.
     }
     else if (elmofz[slv_number].findZeroSequence == FZ_FINDHOMMINGEND)
     {
         // printf("%f goto homming on : %d\n", time_now_, slv_number);
         ElmoMode[slv_number] = EM_POSITION;
-        q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].posStart, -elmofz[slv_number].hommingLength, elmofz[slv_number].initTime, fztime);
+        q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].initPos, -elmofz[slv_number].hommingLength*4.0, elmofz[slv_number].initTime, fztime*4.0);
 
-        // go to -20deg until homming turn on, and turn off
-        if ((hommingElmo_before[slv_number] == 1) && (hommingElmo[slv_number] == 0))
+        if (!elmofz[slv_number].endFound)
         {
-            // printf("goto homming on : %d\n", slv_number);
-            if (abs(elmofz[slv_number].posStart - q_elmo_[slv_number]) > elmofz[slv_number].req_length)
+            if ((hommingElmo_before[slv_number] == 1) && (hommingElmo[slv_number] == 0))
             {
                 elmofz[slv_number].posEnd = q_elmo_[slv_number];
                 elmofz[slv_number].endFound = 1;
-            }
-            else
-            {
-                printf("ELMO %d : Joint %d %s : Not enough distance, required : %f current : %f \n", g_init_args.ecat_device, slv_number, ELMO_NAME[slv_number], elmofz[slv_number].req_length, abs(elmofz[slv_number].posStart - q_elmo_[slv_number]));
-                // std::printf("Joint " << slv_number << " " << ELMO_NAME[slv_number] << " : Not enough distance, required : " << elmofz[slv_number].req_length << ", detected : " << abs(elmofz[slv_number].posStart - q_elmo_[slv_number]) << '\n';
-
-                // std::printf("Joint " << slv_number << " " << ELMO_NAME[slv_number] << "if you want to proceed with detected length, proceed with manual mode \n");
-
-                state_zp_[JointMap2[slv_number]] = ZSTATE::ZP_NOT_ENOUGH_HOMMING;
-                elmofz[slv_number].findZeroSequence = 7;
-                elmofz[slv_number].result = ElmoHommingStatus::FAILURE;
-                elmofz[slv_number].initTime = time_now_;
+                elmofz[slv_number].pos_turnedoff = q_elmo_[slv_number];
+                
+                // printf("find blank at searching end!!: %d\n", slv_number);
             }
         }
-        else if ((hommingElmo_before[slv_number] == 0) && (hommingElmo[slv_number] == 0))
+        else
         {
-            if (elmofz[slv_number].endFound == 1)
+            // if end found,
+            if ((hommingElmo_before[slv_number] == 0) && (hommingElmo[slv_number] == 0))
             {
-                // printf("goto zero : %d\n", slv_number);
-                elmofz[slv_number].findZeroSequence = FZ_GOTOZEROPOINT;
-                state_zp_[JointMap2[slv_number]] = ZSTATE::ZP_GOTO_ZERO;
 
-                elmofz[slv_number].initPos = q_elmo_[slv_number];
-                q_zero_elmo_[slv_number] = (elmofz[slv_number].posEnd + elmofz[slv_number].posStart) * 0.5 + q_zero_mod_elmo_[slv_number];
-                elmofz[slv_number].initTime = time_now_;
+                if (q_elmo_[slv_number] < elmofz[slv_number].pos_turnedoff - elmofz[slv_number].min_black_length)
+                {
+                    // it's clean!
+                    // check the seq
+                    //  printf("goto homming on : %d\n", slv_number);
+                    
+                    // printf("NO blank at searching end!!: %d\n", slv_number);
+
+
+                    if (abs(elmofz[slv_number].posStart - elmofz[slv_number].pos_turnedoff) > elmofz[slv_number].req_length)
+                    {
+                        elmofz[slv_number].posEnd = q_elmo_[slv_number];
+                        elmofz[slv_number].findZeroSequence = FZ_GOTOZEROPOINT;
+                        elmofz[slv_number].endFound = false;
+                        state_zp_[JointMap2[slv_number]] = ZSTATE::ZP_GOTO_ZERO;
+                        elmofz[slv_number].initPos = q_elmo_[slv_number];
+                        q_zero_elmo_[slv_number] = (elmofz[slv_number].posEnd + elmofz[slv_number].posStart) * 0.5 + q_zero_mod_elmo_[slv_number];
+                        elmofz[slv_number].initTime = time_now_;
+                    }
+                    else
+                    {
+                        printf("ELMO %d : Joint %d %s : Not enough distance, required : %f current : %f \n", g_init_args.ecat_device, slv_number, ELMO_NAME[slv_number], elmofz[slv_number].req_length, abs(elmofz[slv_number].posStart - q_elmo_[slv_number]));
+                        // std::printf("Joint " << slv_number << " " << ELMO_NAME[slv_number] << " : Not enough distance, required : " << elmofz[slv_number].req_length << ", detected : " << abs(elmofz[slv_number].posStart - q_elmo_[slv_number]) << '\n';
+
+                        // std::printf("Joint " << slv_number << " " << ELMO_NAME[slv_number] << "if you want to proceed with detected length, proceed with manual mode \n");
+
+                        state_zp_[JointMap2[slv_number]] = ZSTATE::ZP_NOT_ENOUGH_HOMMING;
+                        elmofz[slv_number].findZeroSequence = 7;
+                        elmofz[slv_number].result = ElmoHommingStatus::FAILURE;
+                        elmofz[slv_number].initTime = time_now_;
+                        elmofz[slv_number].endFound = false;
+                    }
+                }
+
+                // printf("goto zero : %d\n", slv_number);
+            }
+            else if ((hommingElmo_before[slv_number] == 0) && (hommingElmo[slv_number] == 1))
+            {
+                // WHY,?
+                elmofz[slv_number].endFound = 0;
+                elmofz[slv_number].pos_turnedon = q_elmo_[slv_number];
             }
         }
+        // go to -20deg until homming turn on, and turn off
 
-        if (time_now_ > elmofz[slv_number].initTime + fztime)
+        if (time_now_ > elmofz[slv_number].initTime + fztime*3.0)
         {
             // printf("goto seg 6 : %d\n", slv_number);
             // If dection timeout, go to failure sequence
