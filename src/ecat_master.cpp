@@ -320,11 +320,11 @@ void cnt_print(int cnt)
 {
     if (cnt == 0)
     {
-        printf("%d\t", cnt);
+        fprintf(stdout,"%d\t", cnt);
     }
     else
     {
-        printf("%s%d\t%s", cred, cnt, creset);
+        fprintf(stdout,"%s%d\t%s", cred, cnt, creset);
     }
 }
 
@@ -416,36 +416,36 @@ void ecatDiagnoseOnChange()
         {
             if (link_lost1_p[i] != link_lost1[i])
             {
-                printf("ECAT %d : Link Lost Event At slave %d port 0! \n", g_init_args.ecat_device, i);
+                fprintf(stdout,"ECAT %d : Link Lost Event At slave %d port 0! \n", g_init_args.ecat_device, i);
                 link_lost_b = true;
                 ll_p1 = i;
             }
             if (link_lost2_p[i] != link_lost2[i])
             {
-                printf("ECAT %d : Link Lost Event At slave %d port 1! \n", g_init_args.ecat_device, i);
+                fprintf(stdout,"ECAT %d : Link Lost Event At slave %d port 1! \n", g_init_args.ecat_device, i);
                 link_lost_b = true;
                 ll_p2 = i;
             }
 
             if (fe_lost1_p[i] != fe_lost1[i])
             {
-                printf("ECAT %d : CRC ERROR Event At slave %d port 0! \n", g_init_args.ecat_device, i);
+                fprintf(stdout,"ECAT %d : CRC ERROR Event At slave %d port 0! \n", g_init_args.ecat_device, i);
                 crc_error_b = true;
             }
             if (fe_lost2_p[i] != fe_lost2[i])
             {
-                printf("ECAT %d : CRC ERROR Event! At slave %d port 1! \n", g_init_args.ecat_device, i);
+                fprintf(stdout,"ECAT %d : CRC ERROR Event! At slave %d port 1! \n", g_init_args.ecat_device, i);
                 crc_error_b = true;
             }
 
             if (ple_lost1_p[i] != ple_lost1[i])
             {
-                printf("ECAT %d : RX Error Event! At slave %d port 0! \n", g_init_args.ecat_device, i);
+                fprintf(stdout,"ECAT %d : RX Error Event! At slave %d port 0! \n", g_init_args.ecat_device, i);
                 rx_error_b = true;
             }
             if (ple_lost2_p[i] != ple_lost2[i])
             {
-                printf("ECAT %d : RX Error Event! At slave %d port 1! \n", g_init_args.ecat_device, i);
+                fprintf(stdout,"ECAT %d : RX Error Event! At slave %d port 1! \n", g_init_args.ecat_device, i);
 
                 rx_error_b = true;
             }
@@ -453,17 +453,17 @@ void ecatDiagnoseOnChange()
             if (fre_lost1_p[i] != fre_lost1[i])
             {
                 frd_error_b = true;
-                printf("ECAT %d : Forwarded Error Event! At slave %d port 0! \n", g_init_args.ecat_device, i);
+                fprintf(stdout,"ECAT %d : Forwarded Error Event! At slave %d port 0! \n", g_init_args.ecat_device, i);
             }
             if (fre_lost2_p[i] != fre_lost2[i])
             {
                 frd_error_b = true;
-                printf("ECAT %d : Forwarded Error Event! At slave %d port 1! \n", g_init_args.ecat_device, i);
+                fprintf(stdout,"ECAT %d : Forwarded Error Event! At slave %d port 1! \n", g_init_args.ecat_device, i);
             }
 
             if (process_unit_error_p[i] != process_unit_error[i])
             {
-                printf("ECAT %d : EPU Error Event! At slave %d! \n", g_init_args.ecat_device, i);
+                fprintf(stdout,"ECAT %d : EPU Error Event! At slave %d! \n", g_init_args.ecat_device, i);
                 process_unit_error_b = true;
             }
         }
@@ -474,78 +474,78 @@ void ecatDiagnoseOnChange()
         if (link_lost_b)
         {
             // printf("ECAT %d : Link Lost Event! \n", g_init_args.ecat_device);
-            printf("Link Lost Cnt 0 : \t");
+            fprintf(stdout,"Link Lost Cnt 0 : \t");
             for (int i = 0; i < ec_slavecount; i++)
             {
                 cnt_print(link_lost1[i]);
             }
-            printf("\nLink Lost Cnt 1 : \t");
+            fprintf(stdout,"\nLink Lost Cnt 1 : \t");
             for (int i = 0; i < ec_slavecount; i++)
             {
                 cnt_print(link_lost2[i]);
             }
-            printf("\n\n");
+            fprintf(stdout,"\n\n");
         }
 
         if (crc_error_b)
         {
             // printf("ECAT %d : CRC ERROR Event! \n", g_init_args.ecat_device);
-            printf("  CRC Err Cnt 0 : \t");
+            fprintf(stdout,"  CRC Err Cnt 0 : \t");
             for (int i = 0; i < ec_slavecount; i++)
             {
                 cnt_print(fe_lost1[i]);
             }
-            printf("\n  CRC Err Cnt 1 : \t");
+            fprintf(stdout,"\n  CRC Err Cnt 1 : \t");
             for (int i = 0; i < ec_slavecount; i++)
             {
                 cnt_print(fe_lost2[i]);
             }
-            printf("\n\n");
+            fprintf(stdout,"\n\n");
         }
 
         if (frd_error_b)
         {
 
             // printf("ECAT %d : Forwarded Error Event! \n", g_init_args.ecat_device);
-            printf(" Forw Err Cnt 0 : \t");
+            fprintf(stdout," Forw Err Cnt 0 : \t");
             for (int i = 0; i < ec_slavecount; i++)
             {
                 cnt_print(fre_lost1[i]);
             }
 
-            printf("\n Forw Err Cnt 1 : \t");
+            fprintf(stdout,"\n Forw Err Cnt 1 : \t");
             for (int i = 0; i < ec_slavecount; i++)
             {
                 cnt_print(fre_lost2[i]);
             }
-            printf("\n\n");
+            fprintf(stdout,"\n\n");
         }
 
         if (rx_error_b)
         {
             // printf("ECAT %d : RX Error Event! \n", g_init_args.ecat_device);
-            printf("   RX Err Cnt 0 : \t");
+            fprintf(stdout,"   RX Err Cnt 0 : \t");
             for (int i = 0; i < ec_slavecount; i++)
             {
                 cnt_print(ple_lost1[i]);
             }
-            printf("\n   RX Err Cnt 1 : \t");
+            fprintf(stdout,"\n   RX Err Cnt 1 : \t");
             for (int i = 0; i < ec_slavecount; i++)
             {
                 cnt_print(ple_lost2[i]);
             }
-            printf("\n\n");
+            fprintf(stdout,"\n\n");
         }
 
         if (process_unit_error_b)
         {
             // printf("ECAT %d : EPU Error Event! \n", g_init_args.ecat_device);
-            printf("    EPU Err Cnt : \t");
+            fprintf(stdout,"    EPU Err Cnt : \t");
             for (int i = 0; i < ec_slavecount; i++)
             {
                 cnt_print(process_unit_error[i]);
             }
-            printf("\n\n");
+            fprintf(stdout,"\n\n");
         }
     }
 
@@ -833,7 +833,7 @@ void elmoInit()
     elmofz[R_Shoulder3_Joint].req_length = 0.03;
     elmofz[L_Shoulder3_Joint].req_length = 0.03;
 
-    elmofz[L_Armlink_Joint].req_length = 0.15;
+    elmofz[L_Armlink_Joint].req_length = 0.14;
 
     elmofz[R_Wrist2_Joint].req_length = 0.05;
     elmofz[L_Wrist2_Joint].req_length = 0.05;
@@ -920,12 +920,12 @@ bool initTocabiSystem(const TocabiInitArgs &args)
     if (!ec_init_redundant(args.port1, ifname2))
     // if (!ec_init(args.port1))
     {
-        printf("ELMO %d : No socket connection on %s / %s \nExcecute as root\n", args.ecat_device, args.port1, args.port2);
+        fprintf(stdout,"ELMO %d : No socket connection on %s / %s \nExcecute as root\n", args.ecat_device, args.port1, args.port2);
         return false;
     }
 
-    printf("ELMO %d : ec_init on %s %s succeeded.\n", args.ecat_device, args.port1, args.port2);
-
+    fprintf(stdout,"ELMO %d : ec_init on %s %s succeeded.\n", args.ecat_device, args.port1, args.port2);
+    fflush(stdout);
     return true;
 }
 
@@ -946,9 +946,9 @@ void *ethercatThread1(void *data)
 
     if (ec_config_init(FALSE) <= 0) // TRUE when using configtable to init slavtes, FALSE oherwise
     {
-        printf("%sELMO : No slaves found!%s\n", cred, creset);
+        fprintf(stdout,"%sELMO : No slaves found!%s\n", cred, creset);
     }
-    printf("ELMO %d : %d / %d slaves found and configured.\n", g_init_args.ecat_device, ec_slavecount, g_init_args.ecat_slave_num); // ec_slavecount -> slave num
+    fprintf(stdout,"ELMO %d : %d / %d slaves found and configured.\n", g_init_args.ecat_device, ec_slavecount, g_init_args.ecat_slave_num); // ec_slavecount -> slave num
 
     if (ec_slavecount == g_init_args.ecat_slave_num)
     {
@@ -956,7 +956,7 @@ void *ethercatThread1(void *data)
     }
     else
     {
-        printf("ELMO %d : %d / %d slaves found and configured.\n", g_init_args.ecat_device, ec_slavecount, g_init_args.ecat_slave_num); // ec_slavecount -> slave num
+        fprintf(stdout,"ELMO %d : %d / %d slaves found and configured.\n", g_init_args.ecat_device, ec_slavecount, g_init_args.ecat_slave_num); // ec_slavecount -> slave num
         shm_msgs_->shutdown = true;
     }
     /** CompleteAccess disabled for Elmo driver */
@@ -964,7 +964,7 @@ void *ethercatThread1(void *data)
     {
         if (!(ec_slave[slave].CoEdetails & ECT_COEDET_SDOCA))
         {
-            printf("ELMO %d : slave[%d] CA? : false , shutdown request \n ", g_init_args.ecat_device, slave);
+            fprintf(stdout,"ELMO %d : slave[%d] CA? : false , shutdown request \n ", g_init_args.ecat_device, slave);
         }
         ec_slave[slave].CoEdetails ^= ECT_COEDET_SDOCA;
     }
@@ -999,7 +999,8 @@ void *ethercatThread1(void *data)
     /** if CA disable => automapping works */
 
     if (init_args->verbose)
-        printf("ELMO %d : EC CONFIG MAP\n", init_args->ecat_device);
+        fprintf(stdout,"ELMO %d : EC CONFIG MAP\n", init_args->ecat_device);
+    fflush(stdout);
 
     int ecmap = ec_config_map(&IOmap);
 
@@ -1019,13 +1020,13 @@ void *ethercatThread1(void *data)
         printf("%s", ec_elist2string());
 
     if (init_args->verbose)
-        printf("ELMO %d : EC WAITING STATE TO SAFE_OP\n", init_args->ecat_device);
+        fprintf(stdout,"ELMO %d : EC WAITING STATE TO SAFE_OP\n", init_args->ecat_device);
     ec_statecheck(0, EC_STATE_SAFE_OP, EC_TIMEOUTSTATE * 4);
     ec_readstate();
     /* wait for all slaves to reach SAFE_OP state */
     expectedWKC = (ec_group[0].outputsWKC * 2) + ec_group[0].inputsWKC;
     if (init_args->verbose)
-        printf("ELMO %d : Request operational state for all slaves. Calculated workcounter : %d\n", init_args->ecat_device, expectedWKC);
+        fprintf(stdout,"ELMO %d : Request operational state for all slaves. Calculated workcounter : %d\n", init_args->ecat_device, expectedWKC);
 
     if (expectedWKC != 3 * init_args->ecat_slave_num)
     {
@@ -1062,13 +1063,13 @@ void *ethercatThread1(void *data)
 
     if (ec_slave[0].state != EC_STATE_OPERATIONAL)
     {
-        printf("%sELMO %d : Not all slaves reached operational state.%s\n", cred, init_args->ecat_device, creset);
+        fprintf(stdout, "%sELMO %d : Not all slaves reached operational state.%s\n", cred, init_args->ecat_device, creset);
         ec_readstate();
         for (int slave = 1; slave <= ec_slavecount; slave++)
         {
             if (ec_slave[slave - 1].state != EC_STATE_OPERATIONAL)
             {
-                printf("%sELMO %d : EtherCAT State Operation Error : Slave %d State=0x%2.2x StatusCode=0x%4.4x : %s%s\n",
+                fprintf(stdout,"%sELMO %d : EtherCAT State Operation Error : Slave %d State=0x%2.2x StatusCode=0x%4.4x : %s%s\n",
                        cred, init_args->ecat_device, slave - 1, ec_slave[slave - 1].state, ec_slave[slave - 1].ALstatuscode,
                        ec_ALstatuscode2string(ec_slave[slave - 1].ALstatuscode), creset);
             }
@@ -1116,7 +1117,9 @@ void *ethercatThread1(void *data)
 
     // Commutation Checking
     //  st_start_time = std::chrono::steady_clock::now(); // TODO:timespec
-    printf("%sELMO %d : START Initialization Mode %s\n", cyellow, g_init_args.ecat_device, creset);
+    fprintf(stdout,"%sELMO %d : START Initialization Mode %s\n", cyellow, g_init_args.ecat_device, creset);
+    fflush(stdout);
+
     if (g_init_args.ecat_device == 1)
     {
         shm_msgs_->initializeModeUpper = true;
@@ -1727,8 +1730,8 @@ void *ethercatThread1(void *data)
     }
 
     if (!shm_msgs_->shutdown)
-        printf("%sELMO %d : Control Mode Start ... at%ld %s\n", cgreen, g_init_args.ecat_device, cycle_count, creset);
-
+        fprintf(stdout,"%sELMO %d : Control Mode Start ... at%ld %s\n", cgreen, g_init_args.ecat_device, cycle_count, creset);
+    fflush(stdout);
     // memset(joint_state_elmo_, ESTATE::OPERATION_READY, sizeof(int) * ec_slavecount);
     // st_start_time = std::chrono::steady_clock::now();
     // cycle_count = 1;
@@ -3053,13 +3056,13 @@ void checkJointSafety()
 
             if ((joint_lower_limit[START_N + i] > q_elmo_[START_N + i]))
             {
-                printf("%sELMO %d %s : SAFETY LOCK - JOINT LIMIT : %f LIMIT : %f %s\n", cred, g_init_args.ecat_device, ELMO_NAME[START_N + i], q_elmo_[START_N + i], joint_lower_limit[START_N + i], creset);
+                fprintf(stdout,"%sELMO %d %s : SAFETY LOCK - JOINT LIMIT : %f LIMIT : %f %s\n", cred, g_init_args.ecat_device, ELMO_NAME[START_N + i], q_elmo_[START_N + i], joint_lower_limit[START_N + i], creset);
                 state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_JOINT_LIMIT;
                 ElmoSafteyMode[START_N + i] = 1;
             }
             else if ((joint_upper_limit[START_N + i] < q_elmo_[START_N + i]))
             {
-                printf("%sELMO %d %s : SAFETY LOCK - JOINT LIMIT : %f LIMIT : %f %s\n", cred, g_init_args.ecat_device, ELMO_NAME[START_N + i], q_elmo_[START_N + i], joint_upper_limit[START_N + i], creset);
+                fprintf(stdout,"%sELMO %d %s : SAFETY LOCK - JOINT LIMIT : %f LIMIT : %f %s\n", cred, g_init_args.ecat_device, ELMO_NAME[START_N + i], q_elmo_[START_N + i], joint_upper_limit[START_N + i], creset);
 
                 state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_JOINT_LIMIT;
                 ElmoSafteyMode[START_N + i] = 1;
@@ -3067,7 +3070,7 @@ void checkJointSafety()
 
             if (joint_velocity_limit[START_N + i] < abs(q_dot_elmo_[START_N + i]))
             {
-                printf("%sELMO %d %s : SAFETY LOCK - VELOCITY LIMIT %s\n", cred, g_init_args.ecat_device, ELMO_NAME[START_N + i], creset);
+                fprintf(stdout,"%sELMO %d %s : SAFETY LOCK - VELOCITY LIMIT %s\n", cred, g_init_args.ecat_device, ELMO_NAME[START_N + i], creset);
                 state_safety_[JointMap2[START_N + i]] = SSTATE::SAFETY_VELOCITY_LIMIT;
                 ElmoSafteyMode[START_N + i] = 1;
             }
@@ -3085,6 +3088,8 @@ void checkJointSafety()
             ElmoMode[START_N + i] = EM_POSITION;
         }
     }
+
+    fflush(stdout);
 }
 
 void checkJointStatus()
@@ -3236,6 +3241,7 @@ void getJointCommand()
         {
             shm_msgs_->cmd_upper = true;
             memcpy(&torque_desired_[Q_START], &shm_msgs_->torqueCommand[Q_START], sizeof(float) * PART_ELMO_DOF);
+            // memcpy(&max_cnt_[Q_START], &shm_msgs_->max_cnt_[Q_START], sizeof(int) * PART_ELMO_DOF);
             shm_msgs_->cmd_upper = false;
         }
     }
@@ -3248,6 +3254,7 @@ void getJointCommand()
         };
         shm_msgs_->cmd_lower = true;
         memcpy(&torque_desired_[Q_START], &shm_msgs_->torqueCommand[Q_START], sizeof(float) * PART_ELMO_DOF);
+        // memcpy(&max_cnt_[Q_START], &shm_msgs_->max_cnt_[Q_START], sizeof(int) * PART_ELMO_DOF);
         shm_msgs_->cmd_lower = false;
     }
 
@@ -3260,6 +3267,7 @@ void getJointCommand()
         // if (command_mode_[Q_START + i] == 1)
         // {
         torque_desired_elmo_[JointMap[Q_START + i]] = torque_desired_[Q_START + i];
+        // max_cnt_elmo_[JointMap[Q_START + i]] = max_cnt_[Q_START + i];
 
         ElmoMode[START_N + i] = EM_TORQUE;
         // }
