@@ -190,6 +190,9 @@ int g_PRNS = period_ns;
 struct timespec g_ts;
 int64 g_toff; //, gl_delta;
 
+bool grav_signal;
+bool pos_signal;
+
 TocabiInitArgs g_init_args;
 
 // std::vector<int> r_histogram;
@@ -838,8 +841,9 @@ void elmoInit()
     elmofz[L_Wrist2_Joint].req_length = 0.05;
 
     elmofz[Head_Joint].init_direction = -1.0;
-    elmofz[Head_Joint].hommingLength = 0.3;
+    elmofz[Head_Joint].hommingLength = 0.15;
     elmofz[Neck_Joint].hommingLength = 0.15;
+    elmofz[Neck_Joint].fztime = 6.0;
 
     // elmofz[Waist2_Joint]
     elmofz[Waist2_Joint].req_length = 0.07;
@@ -851,10 +855,36 @@ void elmoInit()
     q_goinit_[L_Armlink_Joint] = -1.0;
     q_goinit_[R_Armlink_Joint] = 1.0;
 
-    q_zero_mod_elmo_[8] = 15.46875 * DEG2RAD;
-    q_zero_mod_elmo_[7] = 16.875 * DEG2RAD;
-    q_zero_mod_elmo_[Waist1_Joint] = -15.0 * DEG2RAD;
-    q_zero_mod_elmo_[Upperbody_Joint] = 0.0541;
+    q_zero_mod_elmo_[L_Shoulder1_Joint] = 0.04;
+    q_zero_mod_elmo_[L_Shoulder2_Joint] = 0.045;
+    q_zero_mod_elmo_[L_Shoulder3_Joint] = 0.02;
+    q_zero_mod_elmo_[L_Armlink_Joint] = 16.875 * DEG2RAD + 0.02;
+
+    q_zero_mod_elmo_[L_Elbow_Joint] = 0.025;
+    q_zero_mod_elmo_[L_Forearm_Joint] = 0.03;
+    q_zero_mod_elmo_[L_Wrist1_Joint] = 0.045;
+    q_zero_mod_elmo_[L_Wrist2_Joint] = 0.0;
+
+    q_zero_mod_elmo_[R_Shoulder1_Joint] = 0.02;
+    q_zero_mod_elmo_[R_Shoulder2_Joint] = 0.0;
+    q_zero_mod_elmo_[R_Shoulder3_Joint] = 0.02;
+    q_zero_mod_elmo_[R_Armlink_Joint] = 15.46875 * DEG2RAD;
+
+    q_zero_mod_elmo_[R_Elbow_Joint] = 0.03;
+    q_zero_mod_elmo_[R_Forearm_Joint] = 0.0;
+    q_zero_mod_elmo_[R_Wrist1_Joint] = 0.04;
+    q_zero_mod_elmo_[R_Wrist2_Joint] = 0.0;
+
+    q_zero_mod_elmo_[Neck_Joint] = 0.045;
+
+    q_zero_mod_elmo_[Head_Joint] = -0.120;
+
+    // q_zero_mod_elmo_[R_Wrist2_Joint] = 0.0;
+    // q_zero_mod_elmo_[R_Wrist2_Joint] = 0.0;
+
+    q_zero_mod_elmo_[Upperbody_Joint] = 0.0541 + 0.035; // roll
+    q_zero_mod_elmo_[Waist2_Joint] = 0.0;               // pitch
+    q_zero_mod_elmo_[Waist1_Joint] = -15.0 * DEG2RAD;   // yaw
 
     memset(ElmoSafteyMode, 0, sizeof(int) * ELMO_DOF);
 }
@@ -1394,9 +1424,9 @@ void *ethercatThread1(void *data)
                 if (elmost[i].commutation_required)
                 {
                     total_commutation_cnt++;
-                    if (total_commutation_cnt < 8)
+                    if (total_commutation_cnt < 4)
                         controlWordGenerate(rxPDO[i]->statusWord, txPDO[i]->controlWord);
-                    txPDO[i]->maxTorque = (uint16)100; // originaly 1000
+                    txPDO[i]->maxTorque = (uint16)400; // originaly 1000
                 }
             }
         }
@@ -1414,6 +1444,12 @@ void *ethercatThread1(void *data)
                     if (reachedInitial[slave - 1])
                     {
                         q_elmo_[START_N + slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1]; // - q_zero_elmo_[START_N + slave - 1];
+
+                        if (START_N + slave - 1 == R_HipYaw_Joint)
+                        {
+                            grav_signal = (((uint32_t)ec_slave[slave].inputs[6]) & ((uint32_t)1));
+                            pos_signal = (((uint32_t)ec_slave[slave].inputs[6]) & ((uint32_t)2));
+                        }
 
                         hommingElmo[START_N + slave - 1] =
                             (((uint32_t)ec_slave[slave].inputs[6]) & ((uint32_t)1));
@@ -1451,7 +1487,7 @@ void *ethercatThread1(void *data)
                         {
                             hommingElmo[START_N + slave - 1] = !hommingElmo[START_N + slave - 1];
                         }
-                        txPDO[slave - 1]->maxTorque = (uint16)100; // originaly 1000
+                        txPDO[slave - 1]->maxTorque = (uint16)500; // originaly 1000
                     }
                 }
             }
@@ -1506,7 +1542,12 @@ void *ethercatThread1(void *data)
             q_[JointMap2[START_N + i]] = q_elmo_[START_N + i];
             q_dot_[JointMap2[START_N + i]] = q_dot_elmo_[START_N + i];
             torque_[JointMap2[START_N + i]] = torque_elmo_[START_N + i];
-            q_ext_[JointMap2[START_N + i]] = q_ext_elmo_[START_N + i];
+
+            if (g_init_args.ecat_device == 1)
+                q_ext_[JointMap2[START_N + i]] = q_desired_elmo_[START_N + i];
+            else
+                q_ext_[JointMap2[START_N + i]] = q_ext_elmo_[START_N + i];
+
             // joint_state_[JointMap2[START_N + i]] = joint_state_elmo_[START_N + i];
         }
 
@@ -1687,11 +1728,18 @@ void *ethercatThread1(void *data)
         // command
         for (int i = 0; i < ec_slavecount; i++)
         {
+
             if (ElmoMode[START_N + i] == EM_POSITION)
             {
                 txPDO[i]->modeOfOperation = EtherCAT_Elmo::CyclicSynchronousPositionmode;
                 txPDO[i]->targetPosition = (int)(elmo_axis_direction[START_N + i] * RAD2CNT[START_N + i] * q_desired_elmo_[START_N + i]);
+
                 txPDO[i]->maxTorque = 500;
+
+                // if (START_N + i == Head_Joint)
+                // {
+                //     printf("qdes : %6.3f q: %6.3f homming: %d pact %d \n", q_desired_elmo_[START_N + i], q_elmo_[START_N + i], hommingElmo[START_N + i], rxPDO[i]->positionActualValue);
+                // }
             }
             else if (ElmoMode[START_N + i] == EM_TORQUE)
             {
@@ -1990,6 +2038,15 @@ void *ethercatThread1(void *data)
                 {
                     q_elmo_[START_N + slave - 1] = rxPDO[slave - 1]->positionActualValue * CNT2RAD[START_N + slave - 1] * elmo_axis_direction[START_N + slave - 1] - q_zero_elmo_[START_N + slave - 1];
 
+                    if (START_N + slave - 1 == R_HipYaw_Joint)
+                    {
+                        grav_signal = (((uint32_t)ec_slave[slave].inputs[6]) & ((uint32_t)1));
+                        pos_signal = (((uint32_t)ec_slave[slave].inputs[6]) & ((uint32_t)2));
+
+                        shm_msgs_->grav_signal = grav_signal;
+                        shm_msgs_->pos_signal = pos_signal;
+                    }
+
                     hommingElmo[START_N + slave - 1] =
                         (((uint32_t)ec_slave[slave].inputs[6]) & ((uint32_t)1));
                     q_dot_elmo_[START_N + slave - 1] =
@@ -2029,6 +2086,32 @@ void *ethercatThread1(void *data)
                     txPDO[slave - 1]->maxTorque = (uint16)1; // originaly 1000
                 }
             }
+
+            // static int grav_sig_before = 0;
+            // static int pos_sig_before = 0;
+
+            // if (grav_sig_before != grav_signal)
+            // {
+            //     if (grav_signal)
+            //         printf("GRAV SIGNAL ON\n");
+            //     else
+            //     {
+            //         printf("GRAV SIGNAL OFF\n");
+            //     }
+            // }
+
+            // if (pos_sig_before != pos_signal)
+            // {
+            //     if (pos_signal)
+            //         printf("POS SIG ON\n");
+            //     else
+            //     {
+            //         printf("POS SIG OFF\n");
+            //     }
+            // }
+
+            // grav_sig_before = grav_signal;
+            // pos_sig_before = pos_signal;
         }
 
         for (int i = 0; i < ec_slavecount; i++)
@@ -2069,6 +2152,7 @@ void *ethercatThread1(void *data)
             if (shm_msgs_->safety_reset_upper_signal)
             {
                 memset(ElmoSafteyMode, 0, sizeof(int) * ELMO_DOF);
+                fprintf(stdout, "ELMO 1 : SAFETY RESET \n");
                 shm_msgs_->safety_reset_upper_signal = false;
             }
         }
@@ -2078,6 +2162,8 @@ void *ethercatThread1(void *data)
             if (shm_msgs_->safety_reset_lower_signal)
             {
                 memset(ElmoSafteyMode, 0, sizeof(int) * ELMO_DOF);
+                fprintf(stdout, "ELMO 2 : SAFETY RESET \n");
+
                 shm_msgs_->safety_reset_lower_signal = false;
             }
         }
@@ -3624,7 +3710,7 @@ void findZeroPointlow(int slv_number, double time_real_)
 }
 void findZeroPoint(int slv_number, double time_now_)
 {
-    double fztime = 3.0;
+    // double fztime = 3.0;
     double fztime_manual = 300.0;
     if (elmofz[slv_number].findZeroSequence == FZ_CHECKHOMMINGSTATUS) // Check initial status of homming sensor
     {
@@ -3632,7 +3718,7 @@ void findZeroPoint(int slv_number, double time_now_)
         // pub_to_gui(dc, "jointzp %d %d", slv_number, 0);
         if (hommingElmo[slv_number]) // Initial status of homming sensor is TRUE
         {
-            // printf("init homming on : %d %7.3f\n", slv_number, time_now_);
+            printf("init homming on goto findhomming start : %d %7.3f\n", slv_number, time_now_);
             elmofz[slv_number].findZeroSequence = FZ_FINDHOMMINGSTART;
             elmofz[slv_number].initTime = time_now_;
             elmofz[slv_number].initPos = q_elmo_[slv_number];
@@ -3641,7 +3727,7 @@ void findZeroPoint(int slv_number, double time_now_)
         else // Initial status of homming sensor if FALSE
         {
 
-            // printf("init homming off : %d %7.3f\n", slv_number, time_now_);
+            printf("init homming off goto findhomming : %d %7.3f\n", slv_number, time_now_);
             elmofz[slv_number].findZeroSequence = FZ_FINDHOMMING;
             elmofz[slv_number].initTime = time_now_;
             elmofz[slv_number].initPos = q_elmo_[slv_number];
@@ -3652,7 +3738,7 @@ void findZeroPoint(int slv_number, double time_now_)
     {
         // go to + 0.3rad until homming sensor turn off
         ElmoMode[slv_number] = EM_POSITION;
-        q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].initPos, elmofz[slv_number].hommingLength*1.5, elmofz[slv_number].initTime, fztime*1.5);
+        q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].initPos, elmofz[slv_number].hommingLength, elmofz[slv_number].initTime, elmofz[slv_number].fztime);
 
         if (!elmofz[slv_number].startFound)
         {
@@ -3663,7 +3749,7 @@ void findZeroPoint(int slv_number, double time_now_)
                 elmofz[slv_number].startFound = true;
                 elmofz[slv_number].posStart = q_elmo_[slv_number];
 
-                // printf("search blank : %d\n", slv_number);
+                printf("%s findhommingstart : homming is off! continue to search blank : %d q : %f\n", ELMO_NAME[slv_number], slv_number, q_elmo_[slv_number]);
 
                 // printf("goto homming off : %d %7.3f\n", slv_number, time_now_);
                 // std::printf("motor " << slv_number << " seq 1 complete, wait 1 sec\n");
@@ -3676,7 +3762,7 @@ void findZeroPoint(int slv_number, double time_now_)
             {
                 if (q_elmo_[slv_number] > elmofz[slv_number].pos_turnedoff + elmofz[slv_number].min_black_length)
                 {
-                    // printf("no blank!! find END!: %d\n", slv_number);
+                    printf("%s findhommingstart : end searching blank! GOTO FIND HOMMING END : %d q : %f\n", ELMO_NAME[slv_number], slv_number, q_elmo_[slv_number]);
 
                     elmofz[slv_number].findZeroSequence = FZ_FINDHOMMINGEND;
                     elmofz[slv_number].initTime = time_now_;
@@ -3691,16 +3777,16 @@ void findZeroPoint(int slv_number, double time_now_)
             }
             else if ((hommingElmo[slv_number] == 1) && (hommingElmo_before[slv_number] == 0)) // HOMMING IS TURNED ON?! ANOTHER SEGMENT!
             {
-                // printf("turned on while blank!!: %d\n", slv_number);
+                printf("%s findhommingstart : homming on is detected while searching blank! : %d q : %f\n", ELMO_NAME[slv_number], slv_number, q_elmo_[slv_number]);
 
                 elmofz[slv_number].pos_turnedon = q_elmo_[slv_number];
                 elmofz[slv_number].startFound = false;
             }
         }
 
-        if (time_now_ > elmofz[slv_number].initTime + fztime*1.5)
+        if (time_now_ > elmofz[slv_number].initTime + elmofz[slv_number].fztime)
         {
-            printf("%s ELMO %d : WARNING! : %s homming not turning off! %s\n", cred, g_init_args.ecat_device, ELMO_NAME[slv_number], creset);
+            printf("%s ELMO %d : WARNING! : %s homming not turning off! GOTO FAILURE %s\n", cred, g_init_args.ecat_device, ELMO_NAME[slv_number], creset);
             state_zp_[JointMap2[slv_number]] = ZSTATE::ZP_NOT_ENOUGH_HOMMING;
             elmofz[slv_number].startFound = false;
             elmofz[slv_number].findZeroSequence = 7;
@@ -3714,7 +3800,7 @@ void findZeroPoint(int slv_number, double time_now_)
     {
         // printf("%f goto homming on : %d\n", time_now_, slv_number);
         ElmoMode[slv_number] = EM_POSITION;
-        q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].initPos, -elmofz[slv_number].hommingLength*4.0, elmofz[slv_number].initTime, fztime*4.0);
+        q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].initPos, -elmofz[slv_number].findEndLength, elmofz[slv_number].initTime, elmofz[slv_number].fztime * 2.0);
 
         if (!elmofz[slv_number].endFound)
         {
@@ -3723,8 +3809,8 @@ void findZeroPoint(int slv_number, double time_now_)
                 elmofz[slv_number].posEnd = q_elmo_[slv_number];
                 elmofz[slv_number].endFound = 1;
                 elmofz[slv_number].pos_turnedoff = q_elmo_[slv_number];
-                
-                // printf("find blank at searching end!!: %d\n", slv_number);
+
+                printf("%s FZ_FINDHOMMINGEND : Homming is off! END FOUND? CONTINUE to search blank : %d q : %f\n", ELMO_NAME[slv_number], slv_number, q_elmo_[slv_number]);
             }
         }
         else
@@ -3738,12 +3824,13 @@ void findZeroPoint(int slv_number, double time_now_)
                     // it's clean!
                     // check the seq
                     //  printf("goto homming on : %d\n", slv_number);
-                    
-                    // printf("NO blank at searching end!!: %d\n", slv_number);
 
+                    printf("%s FZ_FINDHOMMINGEND : IT IS CLEAN! CHECK THE DISTANCE : %d q : %f\n", ELMO_NAME[slv_number], slv_number, q_elmo_[slv_number]);
 
                     if (abs(elmofz[slv_number].posStart - elmofz[slv_number].pos_turnedoff) > elmofz[slv_number].req_length)
                     {
+                        printf("%s FZ_FINDHOMMINGEND : CHECK OK GOTO ZP : %d q : %f\n", ELMO_NAME[slv_number], slv_number, q_elmo_[slv_number]);
+
                         elmofz[slv_number].posEnd = q_elmo_[slv_number];
                         elmofz[slv_number].findZeroSequence = FZ_GOTOZEROPOINT;
                         elmofz[slv_number].endFound = false;
@@ -3754,7 +3841,7 @@ void findZeroPoint(int slv_number, double time_now_)
                     }
                     else
                     {
-                        printf("ELMO %d : Joint %d %s : Not enough distance, required : %f current : %f \n", g_init_args.ecat_device, slv_number, ELMO_NAME[slv_number], elmofz[slv_number].req_length, abs(elmofz[slv_number].posStart - q_elmo_[slv_number]));
+                        printf("ELMO %d : FZ_FINDHOMMINGEND : Joint %d %s : Not enough distance, required : %f current : %f \n", g_init_args.ecat_device, slv_number, ELMO_NAME[slv_number], elmofz[slv_number].req_length, abs(elmofz[slv_number].posStart - q_elmo_[slv_number]));
                         // std::printf("Joint " << slv_number << " " << ELMO_NAME[slv_number] << " : Not enough distance, required : " << elmofz[slv_number].req_length << ", detected : " << abs(elmofz[slv_number].posStart - q_elmo_[slv_number]) << '\n';
 
                         // std::printf("Joint " << slv_number << " " << ELMO_NAME[slv_number] << "if you want to proceed with detected length, proceed with manual mode \n");
@@ -3772,18 +3859,22 @@ void findZeroPoint(int slv_number, double time_now_)
             else if ((hommingElmo_before[slv_number] == 0) && (hommingElmo[slv_number] == 1))
             {
                 // WHY,?
+                printf("%s FZ_FINDHOMMINGEND : THERE IS MORE HOMMING ON WHILE SEARCHng blank : %d q : %f\n", ELMO_NAME[slv_number], slv_number, q_elmo_[slv_number]);
+
                 elmofz[slv_number].endFound = 0;
                 elmofz[slv_number].pos_turnedon = q_elmo_[slv_number];
             }
         }
         // go to -20deg until homming turn on, and turn off
 
-        if (time_now_ > elmofz[slv_number].initTime + fztime*3.0)
+        if (time_now_ > elmofz[slv_number].initTime + elmofz[slv_number].fztime * 2.0)
         {
+            printf("%s FZ_FINDHOMMINGEND : homming is not turning off TIMEOVER!! goto manual : %d q : %f\n", ELMO_NAME[slv_number], slv_number, q_elmo_[slv_number]);
+
             // printf("goto seg 6 : %d\n", slv_number);
             // If dection timeout, go to failure sequence
             elmofz[slv_number].initTime = time_now_;
-            elmofz[slv_number].findZeroSequence = 6;
+            elmofz[slv_number].findZeroSequence = 7;
             elmofz[slv_number].initPos = q_elmo_[slv_number];
         }
     }
@@ -3791,27 +3882,31 @@ void findZeroPoint(int slv_number, double time_now_)
     { // start from unknown
 
         ElmoMode[slv_number] = EM_POSITION;
-        q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].initPos, elmofz[slv_number].init_direction * elmofz[slv_number].hommingLength, elmofz[slv_number].initTime, fztime);
-        if (time_now_ > (elmofz[slv_number].initTime + fztime))
+        q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].initPos, elmofz[slv_number].init_direction * elmofz[slv_number].hommingLength, elmofz[slv_number].initTime, elmofz[slv_number].fztime);
+        if (time_now_ > (elmofz[slv_number].initTime + elmofz[slv_number].fztime))
         {
             // printf("fzhm: %d\n", slv_number);
-            q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].initPos + elmofz[slv_number].hommingLength * elmofz[slv_number].init_direction, -0.6 * elmofz[slv_number].init_direction, elmofz[slv_number].initTime + fztime, fztime * 2.0);
+            q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].initPos + elmofz[slv_number].hommingLength * elmofz[slv_number].init_direction, -0.6 * elmofz[slv_number].init_direction, elmofz[slv_number].initTime + elmofz[slv_number].fztime, elmofz[slv_number].fztime * 2.0);
         }
 
         if (hommingElmo[slv_number] && hommingElmo_before[slv_number])
         {
             // printf("set to seq 1 : %d\n", slv_number);
+
+            printf("%s FZ_FINDHOMMING : homming found goto seq 1 : %d q : %f\n", ELMO_NAME[slv_number], slv_number, q_elmo_[slv_number]);
+
             elmofz[slv_number].findZeroSequence = 1;
             elmofz[slv_number].initTime = time_now_;
             elmofz[slv_number].initPos = q_elmo_[slv_number];
         }
 
-        if (time_now_ > (elmofz[slv_number].initTime + fztime * 3.0))
+        if (time_now_ > (elmofz[slv_number].initTime + elmofz[slv_number].fztime * 3.0))
         {
             // printf("set to seq 6 : %d\n", slv_number);
-            // If dection timeout, go to failure sequence
+            printf("%s FZ_FINDHOMMING : detection timeout! manual! : %d q : %f\n", ELMO_NAME[slv_number], slv_number, q_elmo_[slv_number]);
+
             elmofz[slv_number].initTime = time_now_;
-            elmofz[slv_number].findZeroSequence = 6;
+            elmofz[slv_number].findZeroSequence = 7;
             elmofz[slv_number].initPos = q_elmo_[slv_number];
         }
     }
@@ -3820,7 +3915,7 @@ void findZeroPoint(int slv_number, double time_now_)
         ElmoMode[slv_number] = EM_POSITION;
 
         double go_distance = q_zero_elmo_[slv_number] + q_goinit_[slv_number] - elmofz[slv_number].initPos;
-        double go_to_zero_dur = fztime * (abs(go_distance) / elmofz[slv_number].hommingLength);
+        double go_to_zero_dur = elmofz[slv_number].fztime * (abs(go_distance) / elmofz[slv_number].hommingLength);
         q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].initPos, go_distance, elmofz[slv_number].initTime, go_to_zero_dur);
 
         // go to zero position
@@ -3856,8 +3951,8 @@ void findZeroPoint(int slv_number, double time_now_)
     {
         // find zero point failed
         ElmoMode[slv_number] = EM_POSITION;
-        q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].initPos, elmofz[slv_number].firstPos - elmofz[slv_number].initPos, elmofz[slv_number].initTime, fztime);
-        if (time_now_ > (elmofz[slv_number].initTime + fztime))
+        q_desired_elmo_[slv_number] = elmoJointMove(time_now_, elmofz[slv_number].initPos, elmofz[slv_number].firstPos - elmofz[slv_number].initPos, elmofz[slv_number].initTime, elmofz[slv_number].fztime);
+        if (time_now_ > (elmofz[slv_number].initTime + elmofz[slv_number].fztime))
         {
             elmofz[slv_number].findZeroSequence = 7;
             printf("Motor %d %s : Zero point detection Failed. Manual Detection Required. \n", slv_number, ELMO_NAME[slv_number]);

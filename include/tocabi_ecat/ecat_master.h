@@ -140,6 +140,8 @@ struct ElmoHomming
     double firstPos;
     double init_direction = 1;
     double hommingLength = 0.3;
+    double findEndLength = 0.6;
+    double fztime = 3.0;
     int status;
     int result;
 };

@@ -16,6 +16,8 @@
 #include <atomic>
 #include <chrono>
 
+#include <math.h>
+
 #include "shm_msgs.h"
 #include "tocabi_ecat/ecat_settings.h"
 
@@ -33,8 +35,6 @@ int main()
   SHMmsgs *shm_msgs_;
 
   init_shm(shm_msg_key, shm_id_, &shm_msgs_);
-
-
 
   printf("\n\n\n\n\n\n\n\n");
   while (true)
@@ -56,14 +56,14 @@ int main()
     min = min - hour * 60;
 
     printf("\x1b[A\33[2K\r");
-
     printf("\x1b[A\33[2K\r");
     printf("\x1b[A\33[2K\r");
     printf("\x1b[A\33[2K\r");
     printf("\x1b[A\33[2K\r");
     printf("\x1b[A\33[2K\r");
     printf("\x1b[A\33[2K\r");
-
+    printf("\x1b[A\33[2K\r");
+    printf("\x1b[A\33[2K\r");
 
     printf("\x1b[A\33[2K\r\x1b[A\33[2K\r\x1b[A\33[2K\r\x1b[A\33[2K\r\x1b[A\33[2K\r time : %d h %d m %7.4f %d, %d\n", hour, min, sec, shm_msgs_->maxTorque, (int)shm_msgs_->statusCount);
 
@@ -73,40 +73,40 @@ int main()
     printf(" cnt2 %10d lat avg %6.3f max %6.3f min %6.3f dev %6.4f, send avg %6.3f max %6.3f min %6.3f dev %6.4f\n", (int)shm_msgs_->statusCount2,
            shm_msgs_->lat_avg2 / 1000.0, shm_msgs_->lat_max2 / 1000.0, shm_msgs_->lat_min2 / 1000.0, shm_msgs_->lat_dev2 / 1000.0,
            shm_msgs_->send_avg2 / 1000.0, shm_msgs_->send_max2 / 1000.0, shm_msgs_->send_min2 / 1000.0, shm_msgs_->send_dev2 / 1000.0);
-    int i=0;
+    int i = 0;
 
-    printf("%d %d %d %d %d %d %d %d \n", shm_msgs_->e1_m[i++], shm_msgs_->e1_m[i++], shm_msgs_->e1_m[i++], shm_msgs_->e1_m[i++], shm_msgs_->e1_m[i++], shm_msgs_->e1_m[i++], shm_msgs_->e1_m[i++], shm_msgs_->e1_m[i++]);
+    printf("%d %d %d %d %d %d %d %d \n", shm_msgs_->an_t1[i++], shm_msgs_->an_t1[i++], shm_msgs_->an_t1[i++], shm_msgs_->an_t1[i++], shm_msgs_->an_t1[i++], shm_msgs_->an_t1[i++], shm_msgs_->an_t1[i++], shm_msgs_->an_t1[i++]);
 
-
-    i=0;
-
-    printf(" %d %d %d %d %d %d %d %d \n", shm_msgs_->e2_m[i++], shm_msgs_->e2_m[i++], shm_msgs_->e2_m[i++], shm_msgs_->e2_m[i++], shm_msgs_->e2_m[i++], shm_msgs_->e2_m[i++], shm_msgs_->e2_m[i++], shm_msgs_->e2_m[i++]);
     i = 0;
-    //printf("%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++]);
+
+    printf(" %d %d %d %d %d %d %d %d \n", shm_msgs_->an_t2[i++], shm_msgs_->an_t2[i++], shm_msgs_->an_t2[i++], shm_msgs_->an_t2[i++], shm_msgs_->an_t2[i++], shm_msgs_->an_t2[i++], shm_msgs_->an_t2[i++], shm_msgs_->an_t2[i++]);
+    i = 0;
+    // printf("%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++]);
 
     // printf("%6.3f %6.3f %6.3f %6.3f \n", shm_msgs_->pos_virtual[3], shm_msgs_->pos_virtual[4], shm_msgs_->pos_virtual[5], shm_msgs_->pos_virtual[6]);
     printf("FT L : %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", shm_msgs_->ftSensor[0], shm_msgs_->ftSensor[1], shm_msgs_->ftSensor[2], shm_msgs_->ftSensor[3], shm_msgs_->ftSensor[4], shm_msgs_->ftSensor[5]);
-    
+
     printf("FT R : %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", shm_msgs_->ftSensor[6], shm_msgs_->ftSensor[7], shm_msgs_->ftSensor[8], shm_msgs_->ftSensor[9], shm_msgs_->ftSensor[10], shm_msgs_->ftSensor[11]);
 
-    printf("hand FT L : %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", shm_msgs_->ftSensor2[0], shm_msgs_->ftSensor2[1], shm_msgs_->ftSensor2[2], shm_msgs_->ftSensor2[3], shm_msgs_->ftSensor2[4], shm_msgs_->ftSensor2[5]);
-        
-    printf("hand FT R : %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", shm_msgs_->ftSensor2[6], shm_msgs_->ftSensor2[7], shm_msgs_->ftSensor2[8], shm_msgs_->ftSensor2[9], shm_msgs_->ftSensor2[10], shm_msgs_->ftSensor2[11]);
-    
-    printf("%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++]);
-  
+    double force_norm = sqrt(pow(shm_msgs_->ftSensor2[0], 2) + pow(shm_msgs_->ftSensor2[1], 2) + pow(shm_msgs_->ftSensor2[2], 2));
+    printf("hand FT L : %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f\n", shm_msgs_->ftSensor2[0], shm_msgs_->ftSensor2[1], shm_msgs_->ftSensor2[2], shm_msgs_->ftSensor2[3], shm_msgs_->ftSensor2[4], shm_msgs_->ftSensor2[5], force_norm);
+
+    double force_norm2 = sqrt(pow(shm_msgs_->ftSensor2[6], 2) + pow(shm_msgs_->ftSensor2[7], 2) + pow(shm_msgs_->ftSensor2[8], 2));
+    printf("hand FT R : %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f\n", shm_msgs_->ftSensor2[6], shm_msgs_->ftSensor2[7], shm_msgs_->ftSensor2[8], shm_msgs_->ftSensor2[9], shm_msgs_->ftSensor2[10], shm_msgs_->ftSensor2[11], force_norm2);
+
     printf("%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++]);
 
-    printf("%6.3f %6.3f %6.3f \n", shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++]);
+    printf("%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n", shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++]);
+
+    printf("des :%6.3f %6.3f %6.3f \n", shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++]);
 
     printf("%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f \n ", shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++]);
 
-    printf("%6.3f %6.3f \n", shm_msgs_->pos[i++], shm_msgs_->pos[i++]);
+    printf("des : %6.3f q : %6.3f %6.3f qhead :  %6.3f qneck : %6.3f \n", shm_msgs_->posExt[i], shm_msgs_->torqueActual[i], shm_msgs_->torqueCommand[i], shm_msgs_->pos[i++], shm_msgs_->pos[i++]);
 
     printf("%6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f ", shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++], shm_msgs_->pos[i++]);
 
     std::fflush(stdout);
-
   }
 
   return 0;
