@@ -1337,9 +1337,11 @@ void *ethercatThread1(void *data)
             {
 
                 // std::chrono::milliseconds commutation_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - st_start_time);
-                // printf("ELMO : All slaves Operational in " << commutation_time.count() << "ms\n");
                 long commutation_time = getTimeDiff(ts_start);
-                if (commutation_time / 1e6 < 500)
+
+                int commutation_min_time = 1000;
+
+                if (commutation_time / 1e6 < commutation_min_time)
                 {
 
                     de_commutation_done = true;
@@ -1349,6 +1351,9 @@ void *ethercatThread1(void *data)
                 }
                 else
                 {
+
+                    printf("ELMO %d : All slaves Operational in %f ms, > %d\n", init_args->ecat_device, commutation_time / 1e6, commutation_min_time);
+
                     if (saveCommutationLog())
                     {
                         if (init_args->verbose)
