@@ -830,7 +830,7 @@ void elmoInit()
 
     elmofz[L_Shoulder1_Joint].req_length = 0.18;
     elmofz[L_Shoulder2_Joint].req_length = 0.15;
-    elmofz[R_Shoulder2_Joint].req_length = 0.065;
+    elmofz[R_Shoulder2_Joint].req_length = 0.057;
 
     elmofz[R_Shoulder3_Joint].req_length = 0.03;
     elmofz[L_Shoulder3_Joint].req_length = 0.03;
@@ -3723,7 +3723,7 @@ void findZeroPoint(int slv_number, double time_now_)
         // pub_to_gui(dc, "jointzp %d %d", slv_number, 0);
         if (hommingElmo[slv_number]) // Initial status of homming sensor is TRUE
         {
-            printf("init homming on goto findhomming start : %d %7.3f\n", slv_number, time_now_);
+            // printf("init homming on goto findhomming start : %d %7.3f\n", slv_number, time_now_);
             elmofz[slv_number].findZeroSequence = FZ_FINDHOMMINGSTART;
             elmofz[slv_number].initTime = time_now_;
             elmofz[slv_number].initPos = q_elmo_[slv_number];
@@ -3732,7 +3732,7 @@ void findZeroPoint(int slv_number, double time_now_)
         else // Initial status of homming sensor if FALSE
         {
 
-            printf("init homming off goto findhomming : %d %7.3f\n", slv_number, time_now_);
+            // printf("init homming off goto findhomming : %d %7.3f\n", slv_number, time_now_);
             elmofz[slv_number].findZeroSequence = FZ_FINDHOMMING;
             elmofz[slv_number].initTime = time_now_;
             elmofz[slv_number].initPos = q_elmo_[slv_number];
@@ -3754,7 +3754,7 @@ void findZeroPoint(int slv_number, double time_now_)
                 elmofz[slv_number].startFound = true;
                 elmofz[slv_number].posStart = q_elmo_[slv_number];
 
-                printf("%s findhommingstart : homming is off! continue to search blank : %d q : %f\n", ELMO_NAME[slv_number], slv_number, q_elmo_[slv_number]);
+                // printf("%s findhommingstart : homming is off! continue to search blank : %d q : %f\n", ELMO_NAME[slv_number], slv_number, q_elmo_[slv_number]);
 
                 // printf("goto homming off : %d %7.3f\n", slv_number, time_now_);
                 // std::printf("motor " << slv_number << " seq 1 complete, wait 1 sec\n");
@@ -3767,7 +3767,7 @@ void findZeroPoint(int slv_number, double time_now_)
             {
                 if (q_elmo_[slv_number] > elmofz[slv_number].pos_turnedoff + elmofz[slv_number].min_black_length)
                 {
-                    printf("%s findhommingstart : end searching blank! GOTO FIND HOMMING END : %d q : %f\n", ELMO_NAME[slv_number], slv_number, q_elmo_[slv_number]);
+                    // printf("%s findhommingstart : end searching blank! GOTO FIND HOMMING END : %d q : %f\n", ELMO_NAME[slv_number], slv_number, q_elmo_[slv_number]);
 
                     elmofz[slv_number].findZeroSequence = FZ_FINDHOMMINGEND;
                     elmofz[slv_number].initTime = time_now_;
@@ -3815,7 +3815,7 @@ void findZeroPoint(int slv_number, double time_now_)
                 elmofz[slv_number].endFound = 1;
                 elmofz[slv_number].pos_turnedoff = q_elmo_[slv_number];
 
-                printf("%s FZ_FINDHOMMINGEND : Homming is off! END FOUND? CONTINUE to search blank : %d q : %f\n", ELMO_NAME[slv_number], slv_number, q_elmo_[slv_number]);
+                // printf("%s FZ_FINDHOMMINGEND : Homming is off! END FOUND? CONTINUE to search blank : %d q : %f\n", ELMO_NAME[slv_number], slv_number, q_elmo_[slv_number]);
             }
         }
         else
@@ -3830,11 +3830,11 @@ void findZeroPoint(int slv_number, double time_now_)
                     // check the seq
                     //  printf("goto homming on : %d\n", slv_number);
 
-                    printf("%s FZ_FINDHOMMINGEND : IT IS CLEAN! CHECK THE DISTANCE : %d q : %f\n", ELMO_NAME[slv_number], slv_number, q_elmo_[slv_number]);
+                    // printf("%s FZ_FINDHOMMINGEND : IT IS CLEAN! CHECK THE DISTANCE : %d q : %f\n", ELMO_NAME[slv_number], slv_number, q_elmo_[slv_number]);
 
                     if (abs(elmofz[slv_number].posStart - elmofz[slv_number].pos_turnedoff) > elmofz[slv_number].req_length)
                     {
-                        printf("%s FZ_FINDHOMMINGEND : CHECK OK GOTO ZP : %d q : %f\n", ELMO_NAME[slv_number], slv_number, q_elmo_[slv_number]);
+                        // printf("%s FZ_FINDHOMMINGEND : CHECK OK GOTO ZP : %d q : %f\n", ELMO_NAME[slv_number], slv_number, q_elmo_[slv_number]);
 
                         elmofz[slv_number].posEnd = q_elmo_[slv_number];
                         elmofz[slv_number].findZeroSequence = FZ_GOTOZEROPOINT;
@@ -3846,7 +3846,7 @@ void findZeroPoint(int slv_number, double time_now_)
                     }
                     else
                     {
-                        printf("ELMO %d : FZ_FINDHOMMINGEND : Joint %d %s : Not enough distance, required : %f current : %f \n", g_init_args.ecat_device, slv_number, ELMO_NAME[slv_number], elmofz[slv_number].req_length, abs(elmofz[slv_number].posStart - q_elmo_[slv_number]));
+                        printf("ELMO %d : FZ_FINDHOMMINGEND : Joint %d %s : Not enough distance, required : %f current : %f \n", g_init_args.ecat_device, slv_number, ELMO_NAME[slv_number], elmofz[slv_number].req_length, abs(elmofz[slv_number].posStart - elmofz[slv_number].pos_turnedoff));
                         // std::printf("Joint " << slv_number << " " << ELMO_NAME[slv_number] << " : Not enough distance, required : " << elmofz[slv_number].req_length << ", detected : " << abs(elmofz[slv_number].posStart - q_elmo_[slv_number]) << '\n';
 
                         // std::printf("Joint " << slv_number << " " << ELMO_NAME[slv_number] << "if you want to proceed with detected length, proceed with manual mode \n");
@@ -3898,7 +3898,7 @@ void findZeroPoint(int slv_number, double time_now_)
         {
             // printf("set to seq 1 : %d\n", slv_number);
 
-            printf("%s FZ_FINDHOMMING : homming found goto seq 1 : %d q : %f\n", ELMO_NAME[slv_number], slv_number, q_elmo_[slv_number]);
+            // printf("%s FZ_FINDHOMMING : homming found goto seq 1 : %d q : %f\n", ELMO_NAME[slv_number], slv_number, q_elmo_[slv_number]);
 
             elmofz[slv_number].findZeroSequence = 1;
             elmofz[slv_number].initTime = time_now_;
