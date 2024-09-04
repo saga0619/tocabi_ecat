@@ -418,36 +418,36 @@ void ecatDiagnoseOnChange()
         {
             if (link_lost1_p[i] != link_lost1[i])
             {
-                fprintf(stdout, "ECAT %d : Link Lost Event At slave %d port 0! \n", g_init_args.ecat_device, i);
+                fprintf(stdout, "ECAT %d : Link Lost Event At slave %d : %s port 0! \n", g_init_args.ecat_device, i, ELMO_NAME[i]);
                 link_lost_b = true;
                 ll_p1 = i;
             }
             if (link_lost2_p[i] != link_lost2[i])
             {
-                fprintf(stdout, "ECAT %d : Link Lost Event At slave %d port 1! \n", g_init_args.ecat_device, i);
+                fprintf(stdout, "ECAT %d : Link Lost Event At slave %d : %s port 1! \n", g_init_args.ecat_device, i, ELMO_NAME[i]);
                 link_lost_b = true;
                 ll_p2 = i;
             }
 
             if (fe_lost1_p[i] != fe_lost1[i])
             {
-                fprintf(stdout, "ECAT %d : CRC ERROR Event At slave %d port 0! \n", g_init_args.ecat_device, i);
+                fprintf(stdout, "ECAT %d : CRC ERROR Event At slave %d : %s port 0! \n", g_init_args.ecat_device, i, ELMO_NAME[i]);
                 crc_error_b = true;
             }
             if (fe_lost2_p[i] != fe_lost2[i])
             {
-                fprintf(stdout, "ECAT %d : CRC ERROR Event! At slave %d port 1! \n", g_init_args.ecat_device, i);
+                fprintf(stdout, "ECAT %d : CRC ERROR Event! At slave %d : %s port 1! \n", g_init_args.ecat_device, i, ELMO_NAME[i]);
                 crc_error_b = true;
             }
 
             if (ple_lost1_p[i] != ple_lost1[i])
             {
-                fprintf(stdout, "ECAT %d : RX Error Event! At slave %d port 0! \n", g_init_args.ecat_device, i);
+                fprintf(stdout, "ECAT %d : RX Error Event! At slave %d : %s port 0! \n", g_init_args.ecat_device, i, ELMO_NAME[i]);
                 rx_error_b = true;
             }
             if (ple_lost2_p[i] != ple_lost2[i])
             {
-                fprintf(stdout, "ECAT %d : RX Error Event! At slave %d port 1! \n", g_init_args.ecat_device, i);
+                fprintf(stdout, "ECAT %d : RX Error Event! At slave %d : %s port 1! \n", g_init_args.ecat_device, i, ELMO_NAME[i]);
 
                 rx_error_b = true;
             }
@@ -455,17 +455,17 @@ void ecatDiagnoseOnChange()
             if (fre_lost1_p[i] != fre_lost1[i])
             {
                 frd_error_b = true;
-                fprintf(stdout, "ECAT %d : Forwarded Error Event! At slave %d port 0! \n", g_init_args.ecat_device, i);
+                fprintf(stdout, "ECAT %d : Forwarded Error Event! At slave %d : %s port 0! \n", g_init_args.ecat_device, i, ELMO_NAME[i]);
             }
             if (fre_lost2_p[i] != fre_lost2[i])
             {
                 frd_error_b = true;
-                fprintf(stdout, "ECAT %d : Forwarded Error Event! At slave %d port 1! \n", g_init_args.ecat_device, i);
+                fprintf(stdout, "ECAT %d : Forwarded Error Event! At slave %d : %s port 1! \n", g_init_args.ecat_device, i, ELMO_NAME[i]);
             }
 
             if (process_unit_error_p[i] != process_unit_error[i])
             {
-                fprintf(stdout, "ECAT %d : EPU Error Event! At slave %d! \n", g_init_args.ecat_device, i);
+                fprintf(stdout, "ECAT %d : EPU Error Event! At slave %d : %s ! \n", g_init_args.ecat_device, i, ELMO_NAME[i]);
                 process_unit_error_b = true;
             }
         }
@@ -2261,7 +2261,7 @@ void *ethercatThread1(void *data)
 
         total3 += rat_ns;
 
-        if (lat_ns > PERIOD_OVF * 1000)
+        if (lat_ns > PERIOD_OVF * 1000) //Realtime Perfomance
         {
             int lat_temp = lat_ns;
 
@@ -2283,7 +2283,7 @@ void *ethercatThread1(void *data)
             l_ovf++;
             printf("ECAT %d : lat %d ns ovf at %ld\n", g_init_args.ecat_device, lat_ns, cycle_count);
         }
-        if (sat_ns > 350 * 1000)
+        if (sat_ns > (EC_PACKET_TIMEOUT) * 1000)    //EtherCAT Performance overflow
         {
             s_ovf++;
             printf("ECAT %d : sat %d ns rsat %d ns ,ovf at %ld\n", g_init_args.ecat_device, sat_ns, rsat_ns, cycle_count);

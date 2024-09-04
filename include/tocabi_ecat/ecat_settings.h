@@ -14,9 +14,9 @@
 
 #define EC_TIMEOUTMON 500
 
-#define EC_PACKET_TIMEOUT 250
+#define EC_PACKET_TIMEOUT 100 //
 
-#define PERIOD_OVF 50
+#define PERIOD_OVF 50 //Realtime Latency Overflow
 
 #define ELMO_DOF 33
 
