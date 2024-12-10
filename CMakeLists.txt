@@ -28,6 +28,8 @@ else()
   set(COMPILE_REAL TRUE)
 endif() 
 
+
+if(${COMPILE_REAL})
 find_package(Xenomai REQUIRED)
 find_package(catkin REQUIRED COMPONENTS roscpp)
 find_package(tocabi_lib COMPONENTS)
@@ -42,10 +44,6 @@ include_directories(
   ${tocabi_lib_INCLUDE_DIRS}
   /usr/local/include/soem
 )
-
-if(${COMPILE_REAL})
-
-
 
 link_directories(
 )
@@ -92,15 +90,17 @@ target_compile_definitions(tocabi_ecat_lower PRIVATE ${XENOMAI_POSIX_DEFINITIONS
 target_compile_definitions(tocabi_ecat_upper PRIVATE ${XENOMAI_POSIX_DEFINITIONS})
 
 
-endif()
+#endif()
 
-if(${COMPILE_SIM})
+#if(${COMPILE_SIM})
 
-add_executable(watcher src/watcher.cpp)
-endif()
+#add_executable(watcher src/watcher.cpp)
+#endif()
 
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
   FILES_MATCHING PATTERN "*.h"
   PATTERN ".svn" EXCLUDE
 )
+
+endif()
