@@ -289,6 +289,14 @@ void printStatusword(const uint16_t statusWord)
     printf("    ");
 }
 
+void getVoltage()
+{
+    uint32_t dc_link_voltage = 0;
+    int size = sizeof(dc_link_voltage);
+    ec_SDOread(1,0x6079,0,false,&size, &dc_link_voltage, EC_TIMEOUTRXM);
+    printf("DC Link Voltage: %u (raw)\n", dc_link_voltage);
+}
+
 void checkFault(const uint16_t statusWord, int slave)
 {
     char err_text[100] = {0};
@@ -2764,6 +2772,7 @@ void *ethercatThread2(void *data)
                 {
                     ecatDiagnoseOnChange();
                 }
+                getVoltage();
             }
         }
 
