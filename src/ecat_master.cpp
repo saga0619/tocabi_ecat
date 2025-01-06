@@ -295,7 +295,7 @@ void getVoltage()
     int size = sizeof(dc_link_voltage);
     ec_SDOread(1,0x6079,0,false,&size, &dc_link_voltage, EC_TIMEOUTRXM);
     double battery_voltage = (double)(dc_link_voltage)/1000.0
-    printf("DC Link Voltage: %f (raw)\n", battery_voltage);
+    printf("DC Link Voltage: %f V\n", battery_voltage);
 }
 
 void checkFault(const uint16_t statusWord, int slave)
