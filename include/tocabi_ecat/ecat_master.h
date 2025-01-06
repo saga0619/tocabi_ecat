@@ -195,6 +195,7 @@ void ethercatCheck(TocabiInitArgs *targs);
 double elmoJointMove(double init, double angle, double start_time, double traj_time);
 
 bool controlWordGenerate(const uint16_t statusWord, uint16_t &controlWord);
+void getVoltage();
 void checkFault(const uint16_t statusWord, int slave);
 void ecatDiagnoseOnChange();
 void ecatDiagnose();
