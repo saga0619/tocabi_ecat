@@ -2281,12 +2281,12 @@ void *ethercatThread1(void *data)
             // lat_ns/500000
 
             l_ovf++;
-            printf("ECAT %d : ec_send_processdata holds %d ns, causing overflow at %ld th cycle\n", g_init_args.ecat_device, lat_ns, cycle_count);
+            printf("ECAT %d : ec_send_processdata holds %d us, causing overflow( %d us ) at %ld th cycle\n", g_init_args.ecat_device, lat_ns/1000, EC_PACKET_TIMEOUT, cycle_count);
         }
         if (sat_ns > (EC_PACKET_TIMEOUT) * 1000)    //EtherCAT Performance overflow
         {
             s_ovf++;
-            printf("ECAT %d : ec_receive_processdata holds %d ns, and mutex caused %d ns, overflow at %ld th cycle\n", g_init_args.ecat_device, rsat_ns, sat_ns - rsat_ns, cycle_count);
+            printf("ECAT %d : ec_receive_processdata holds %d u, and mutex caused %d us, causing overflow( %d us )at %ld th cycle\n", g_init_args.ecat_device, rsat_ns/1000, (sat_ns - rsat_ns)/1000, EC_PACKET_TIMEOUT, cycle_count);
         }
 
         static int c_count = 0;
